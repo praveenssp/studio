@@ -1,0 +1,143 @@
+/**
+ * This ruleset defines the security model for the "Whisper Rooms" application.
+ *
+ * Core Philosophy:
+ * The security model is built on two primary patterns: strict user-ownership for private
+ * data and creator-ownership for publicly readable data. This ensures a clear separation
+ * between personal user information and shared application content. The default posture
+ * is to deny all access unless explicitly granted.
+ *
+ * Data Structure:
+ * The Firestore database is organized into two top-level collections:
+ * - /users/{userId}: Stores private UserProfile documents. Access is strictly limited
+ *   to the authenticated owner of the document.
+ * - /rooms/{roomId}: Stores Room documents that are publicly readable by any client,
+ *   but writable only by the user who created them.
+ *
+ * Key Security Decisions:
+ * - User Privacy: Listing users from the top-level /users collection is explicitly
+ *   disallowed to prevent user enumeration and protect privacy.
+ * - Public Discoverability: The /rooms collection is publicly readable to allow
+ *   users to browse and discover available voice chat rooms.
+ * - Creator Control: Write access (update, delete) to any room is restricted to its
+ *   original creator, ensuring content integrity.
+ * - Authorization Independence: Room documents contain a denormalized 'creatorId' field.
+ *   This avoids costly and slow 'get()' calls to other documents during rule evaluation,
+ *   making authorization checks fast and efficient.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    //-------------------------------------------------------------------------
+    // Helper Functions
+    //-------------------------------------------------------------------------
+
+    /**
+     * Returns true if the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Returns true if the authenticated user's UID matches the provided userId.
+     * This is the core function for enforcing document ownership.
+     * @param userId The user ID to check against the authenticated user.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * Returns true if the user is the owner AND the document already exists.
+     * Used for safe update and delete operations.
+     * @param userId The user ID to check against the authenticated user.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * Validates required fields for creating a UserProfile document.
+     * Ensures the document's internal 'id' matches the document's path ID.
+     * This is a critical check for maintaining data integrity.
+     */
+    function hasValidUserProfileDataForCreate(userId) {
+      let data = request.resource.data;
+      return data.id == userId;
+    }
+
+    /**
+     * Validates required fields for updating a UserProfile document.
+     * Enforces immutability of the user 'id' field to prevent re-association.
+     */
+    function hasValidUserProfileDataForUpdate() {
+      let data = request.resource.data;
+      return data.id == resource.data.id;
+    }
+
+    /**
+     * Validates required fields for creating a Room document.
+     * Ensures the incoming 'creatorId' matches the authenticated user and the
+     * internal 'id' matches the document path ID for data consistency.
+     */
+    function hasValidRoomDataForCreate(roomId) {
+      let data = request.resource.data;
+      return data.creatorId == request.auth.uid
+          && data.id == roomId;
+    }
+
+    /**
+     * Validates required fields for updating a Room document.
+     * Enforces immutability of critical relational fields 'creatorId' and 'id'.
+     */
+    function hasValidRoomDataForUpdate() {
+      let data = request.resource.data;
+      return data.creatorId == resource.data.creatorId
+          && data.id == resource.data.id;
+    }
+
+    //-------------------------------------------------------------------------
+    // Collection Rules
+    //-------------------------------------------------------------------------
+
+    /**
+     * @description Manages user profile documents. Only the user themselves can
+     *              read, create, update, or delete their own profile.
+     * @path        /users/{userId}
+     * @allow       (get, create, update, delete) A signed-in user with UID 'user123'
+     *              accessing the document at /users/user123.
+     * @deny        (get) A user with UID 'user456' trying to access /users/user123.
+     * @deny        (list) Any user trying to list the /users collection.
+     * @principle   Restricts access to a user's own data tree (Path-based Ownership).
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && hasValidUserProfileDataForCreate(userId);
+      allow update: if isExistingOwner(userId) && hasValidUserProfileDataForUpdate();
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Manages voice chat room documents. Rooms are publicly readable
+     *              but can only be created, updated, or deleted by authenticated users,
+     *              with modification rights restricted to the original creator.
+     * @path        /rooms/{roomId}
+     * @allow       (get, list) Any user, signed-in or not, can read room data.
+     * @allow       (create) Any signed-in user can create a new room document.
+     * @allow       (update) The user whose UID matches the room's 'creatorId' field.
+     * @deny        (update, delete) A user trying to modify a room where their UID
+     *              does not match the 'creatorId' field.
+     * @principle   Enforces document ownership for writes on a public collection.
+     */
+    match /rooms/{roomId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if isSignedIn() && hasValidRoomDataForCreate(roomId);
+      allow update: if isExistingOwner(resource.data.creatorId) && hasValidRoomDataForUpdate();
+      allow delete: if isExistingOwner(resource.data.creatorId);
+    }
+  }
+}

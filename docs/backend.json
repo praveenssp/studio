@@ -1,0 +1,116 @@
+{
+  "entities": {
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Represents a user's profile in the Whisper Rooms application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the UserProfile entity."
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "User's phone number, used for login and verification."
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address.",
+          "format": "email"
+        },
+        "username": {
+          "type": "string",
+          "description": "User's chosen username for the application."
+        },
+        "profileImageUrl": {
+          "type": "string",
+          "description": "URL of the user's profile image.",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "id",
+        "username"
+      ]
+    },
+    "Room": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Room",
+      "type": "object",
+      "description": "Represents a voice chat room in the Whisper Rooms application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Room entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the chat room."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the chat room."
+        },
+        "creatorId": {
+          "type": "string",
+          "description": "Reference to UserProfile. (Relationship: UserProfile 1:N Room)  The user ID of the user who created the room."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the room was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "creatorId",
+        "createdAt"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores user profile information. Path-based ownership ensures only the user can access their own profile. Contains fields like 'phoneNumber', 'email', 'username', and 'profileImageUrl'.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/rooms/{roomId}",
+        "definition": {
+          "entityName": "Room",
+          "schema": {
+            "$ref": "#/backend/entities/Room"
+          },
+          "description": "Stores voice chat room information. Includes denormalized 'creatorId' for authorization independence. Supports efficient listing of rooms and enforces that only the creator can modify room details.",
+          "params": [
+            {
+              "name": "roomId",
+              "description": "The unique identifier for the room."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to support the 'Whisper Rooms' application, focusing on secure and efficient data access.  It leverages path-based ownership and denormalization to achieve Authorization Independence and support the required QAPs.\n\n*   **User Profiles:** User profiles are stored under `/users/{userId}`. This path-based ownership simplifies security rules, ensuring that only the authenticated user can access their profile data.\n*   **Rooms:** Rooms are stored in the `/rooms/{roomId}` collection. The `creatorId` field in each room document is used for authorization.  This allows the creator to manage the room, while other users might have read-only access.\n\n**Authorization Independence:**\n*   The `creatorId` is denormalized in the Room document. This eliminates the need to perform `get()` operations to verify the user's role when accessing the room.\n\n**QAPs Support:**\n*   Secure `list` operations are supported by segregating data based on ownership.  Only the authenticated user can access their profile data.  Rooms can be listed, and security rules can enforce that only the room creator can modify a room.\n"
+  }
+}
