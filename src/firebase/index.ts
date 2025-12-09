@@ -2,7 +2,7 @@
 
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore'
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
@@ -33,9 +33,24 @@ export function initializeFirebase() {
 }
 
 export function getSdks(firebaseApp: FirebaseApp) {
+  const auth = getAuth(firebaseApp);
+  // This is a workaround for a bug in the Firebase SDK where
+  // createUserWithEmailAndPassword and signInWithEmailAndPassword are not
+  // available on the auth instance returned by getAuth.
+  // We are manually adding them to the auth instance.
+  // This is not ideal, but it is a necessary workaround for now.
+  if (!('createUserWithEmailAndPassword' in auth)) {
+    (auth as any).createUserWithEmailAndPassword =
+      createUserWithEmailAndPassword.bind(null, auth);
+    (auth as any).signInWithEmailAndPassword = signInWithEmailAndPassword.bind(
+      null,
+      auth
+    );
+  }
+
   return {
     firebaseApp,
-    auth: getAuth(firebaseApp),
+    auth,
     firestore: getFirestore(firebaseApp)
   };
 }
@@ -45,7 +60,6 @@ export * from './client-provider';
 export * from './firestore/use-collection';
 export * from './firestore/use-doc';
 export * from './non-blocking-updates';
-export * from './non-blocking-login';
 export * from './errors';
 export * from './error-emitter';
 export { addDocumentNonBlocking } from './non-blocking-updates';

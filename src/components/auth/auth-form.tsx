@@ -11,18 +11,17 @@ import {
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth, initiateEmailSignIn, initiateEmailSignUp } from "@/firebase";
-import { onAuthStateChanged, updateProfile, UserCredential } from "firebase/auth";
+import { useAuth } from "@/firebase";
+import { updateProfile, UserCredential } from "firebase/auth";
 import { useEffect, useState } from "react";
 import { useUser } from "@/firebase/provider";
 import { Card, CardContent } from "../ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { collection, doc, setDoc } from "firebase/firestore";
+import { doc } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
@@ -52,30 +51,6 @@ export default function AuthForm() {
     }
   }, [user, router]);
   
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setIsSubmitting(false);
-      if (user) {
-         toast({
-          title: "Success!",
-          description: "Redirecting to your rooms...",
-        });
-        router.push("/rooms");
-      }
-    }, (error) => {
-        setIsSubmitting(false);
-        toast({
-            variant: "destructive",
-            title: "Authentication Failed",
-            description: error.code === 'auth/invalid-credential' 
-                ? 'Incorrect email or password. Please try again.'
-                : error.message,
-        });
-    });
-
-    return () => unsubscribe();
-  }, [auth, router, toast]);
-  
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -96,7 +71,24 @@ export default function AuthForm() {
 
   async function onLoginSubmit(values: z.infer<typeof loginSchema>) {
     setIsSubmitting(true);
-    initiateEmailSignIn(auth, values.email, values.password);
+    try {
+      await auth.signInWithEmailAndPassword(values.email, values.password);
+      toast({
+        title: "Success!",
+        description: "Redirecting to your rooms...",
+      });
+      router.push("/rooms");
+    } catch (error: any) {
+      toast({
+          variant: "destructive",
+          title: "Authentication Failed",
+          description: error.code === 'auth/invalid-credential' 
+              ? 'Incorrect email or password. Please try again.'
+              : error.message,
+      });
+    } finally {
+        setIsSubmitting(false);
+    }
   }
 
   async function onRegisterSubmit(values: z.infer<typeof registerSchema>) {
@@ -123,14 +115,19 @@ export default function AuthForm() {
         
         setDocumentNonBlocking(userProfileRef, userProfileData, { merge: true });
 
-        // The onAuthStateChanged listener will handle redirection
+        toast({
+          title: "Registration Successful!",
+          description: "Redirecting to your rooms...",
+        });
+        router.push("/rooms");
     } catch (error: any) {
-        setIsSubmitting(false);
         toast({
             variant: "destructive",
             title: "Registration Failed",
             description: error.message,
         });
+    } finally {
+        setIsSubmitting(false);
     }
   }
   
