@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { ArrowLeft, Send, Crown, Trash2, CheckCheck, MoreVertical, RefreshCw, Eraser, UserPlus, User, MessageSquare, XCircle, Ban, Check, X, Users } from 'lucide-react';
+import { ArrowLeft, Send, Crown, Trash2, CheckCheck, MoreVertical, RefreshCw, Eraser, UserPlus, User, MessageSquare, XCircle, Ban, Check, X, Users, LogIn } from 'lucide-react';
 import {
   useCollection,
   useDoc,
@@ -72,8 +72,7 @@ const mockUsers = [
   { id: 'user-5', username: 'Kenji', profileImageUrl: 'https://picsum.photos/seed/e/100' },
 ];
 
-export default function ChatRoomPage({ params }: { params: { id: string } }) {
-  const { id } = params;
+export default function ChatRoomPage({ params: { id } }: { params: { id: string } }) {
   const router = useRouter();
   const { toast } = useToast();
   const firestore = useFirestore();
@@ -168,18 +167,19 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
 
   const handleSendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!firestore || !user) return;
+    if (!firestore || !user || !currentUserProfile) return;
 
     const form = e.currentTarget;
     const input = form.elements.namedItem('message') as HTMLInputElement;
     const messageText = input.value.trim();
 
     if (messageText) {
-      const messageData = {
+      const messageData: ChatMessage = {
         id: uuidv4(),
         text: messageText,
         senderId: user.uid,
-        senderName: user.displayName || 'Anonymous',
+        senderName: currentUserProfile.username || 'Anonymous',
+        senderImage: currentUserProfile.profileImageUrl || '',
         createdAt: serverTimestamp(),
       };
       const messagesCollection = collection(firestore, 'rooms', id, 'messages');
@@ -252,15 +252,30 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
     toast({ title: `Removed user from seat.`})
   }
   
-  const handleBlockUser = (userToBlock: typeof mockUsers[0]) => {
+  const handleBlockUser = (userToBlock: {id: string, username: string}) => {
     handleRemoveParticipant(userToBlock.id);
-    setBlockedUsers([...blockedUsers, userToBlock]);
+    const fullUserToBlock = mockUsers.find(u => u.id === userToBlock.id);
+    if (fullUserToBlock && !blockedUsers.find(u => u.id === userToBlock.id)) {
+        setBlockedUsers([...blockedUsers, fullUserToBlock]);
+    }
     toast({ title: `User ${userToBlock.username} blocked.`});
   }
   
   const handleUnblockUser = (userIdToUnblock: string) => {
     setBlockedUsers(blockedUsers.filter(u => u.id !== userIdToUnblock));
      toast({ title: `User unblocked.`});
+  }
+  
+  const handleAddToSeat = (userToAdd: {id: string, username: string}) => {
+    const fullUser = mockUsers.find(u => u.id === userToAdd.id);
+    if(fullUser && participants.length < 5 && !participants.find(p => p.id === fullUser.id)) {
+        setParticipants([...participants, fullUser]);
+        toast({ title: `${userToAdd.username} was added to a seat.` });
+    } else if(participants.length >= 5) {
+        toast({ variant: 'destructive', title: 'Room is full.'});
+    } else {
+        toast({ variant: 'destructive', title: 'User is already in a seat.'});
+    }
   }
 
 
@@ -397,7 +412,7 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
-                    <p className="text-xs text-black font-medium">{roomCreatorProfile?.username || 'Admin'}</p>
+                    <p className="text-xs text-white font-medium">{roomCreatorProfile?.username || 'Admin'}</p>
                 </div>
               )}
               
@@ -417,7 +432,7 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
                             {isCreator && <DropdownMenuItem className="text-destructive" onClick={() => handleBlockUser(p)}><Ban className="mr-2 h-4 w-4" /> Block User</DropdownMenuItem>}
                         </DropdownMenuContent>
                      </DropdownMenu>
-                    <p className="text-xs text-black font-medium">{p.username}</p>
+                    <p className="text-xs text-white font-medium">{p.username}</p>
                 </div>
               ))}
 
@@ -427,7 +442,7 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
                      <Button variant="ghost" className="h-16 w-16 rounded-full border-2 border-dashed border-gray-400 bg-black/10 flex items-center justify-center p-0" onClick={handleRequestToJoin}>
                         <UserPlus className="text-gray-400 h-6 w-6" />
                      </Button>
-                    <p className="text-xs text-black font-medium">Empty</p>
+                    <p className="text-xs text-white font-medium">Empty</p>
                 </div>
               ))}
             </div>
@@ -436,7 +451,7 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
         {/* Join Requests for Admin */}
         {isCreator && joinRequests.length > 0 && (
             <Card>
-                <CardHeader><CardTitle className="text-base">Join Requests</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-base text-white">Join Requests</CardTitle></CardHeader>
                 <CardContent className="space-y-3">
                     {joinRequests.map(req => (
                         <div key={req.id} className="flex items-center justify-between">
@@ -445,7 +460,7 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
                                     <AvatarImage src={req.profileImageUrl} />
                                     <AvatarFallback>{req.username.charAt(0)}</AvatarFallback>
                                 </Avatar>
-                                <span className="text-sm font-medium">{req.username}</span>
+                                <span className="text-sm font-medium text-white">{req.username}</span>
                             </div>
                             <div className="flex gap-2">
                                 <Button size="icon" className="h-8 w-8 bg-green-500 hover:bg-green-600" onClick={() => handleAcceptRequest(req)}><Check className="h-4 w-4" /></Button>
@@ -467,16 +482,43 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
                 messages && messages.length > 0 ? (
                     messages.map(msg => (
                         <div key={msg.id} className={`flex items-end gap-2 ${msg.senderId === user?.uid ? 'flex-row-reverse' : ''}`}>
-                             <Avatar className="h-8 w-8">
-                                <AvatarImage src={undefined} />
-                                <AvatarFallback>{msg.senderName.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <div className={`p-3 rounded-2xl max-w-[70%] ${msg.senderId === user?.uid ? 'bg-yellow-200 rounded-br-none' : 'bg-white rounded-bl-none'}`}>
+                             <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <button disabled={msg.senderId === user?.uid}>
+                                        <Avatar className="h-8 w-8">
+                                            <AvatarImage src={msg.senderImage} />
+                                            <AvatarFallback>{msg.senderName.charAt(0)}</AvatarFallback>
+                                        </Avatar>
+                                    </button>
+                                </DropdownMenuTrigger>
+                                {msg.senderId !== user?.uid && (
+                                     <DropdownMenuContent>
+                                        <DropdownMenuItem onClick={() => router.push(`/profile/${msg.senderId}`)}>
+                                            <User className="mr-2 h-4 w-4" /> View Profile
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem>
+                                            <UserPlus className="mr-2 h-4 w-4" /> Follow
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleStartPrivateChat({id: msg.senderId, username: msg.senderName, profileImageUrl: msg.senderImage})}>
+                                            <MessageSquare className="mr-2 h-4 w-4" /> Message
+                                        </DropdownMenuItem>
+                                        {isCreator && <DropdownMenuSeparator />}
+                                        {isCreator && (
+                                            <DropdownMenuItem onClick={() => handleAddToSeat({id: msg.senderId, username: msg.senderName })}>
+                                                <LogIn className="mr-2 h-4 w-4" /> Add to Seat
+                                            </DropdownMenuItem>
+                                        )}
+                                        {isCreator && (
+                                            <DropdownMenuItem className="text-destructive" onClick={() => handleBlockUser({id: msg.senderId, username: msg.senderName})}>
+                                                <Ban className="mr-2 h-4 w-4" /> Block User
+                                            </DropdownMenuItem>
+                                        )}
+                                    </DropdownMenuContent>
+                                )}
+                            </DropdownMenu>
+                            <div className={`p-3 rounded-2xl max-w-[70%] ${msg.senderId === user?.uid ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-white rounded-bl-none'}`}>
                                 <p className="font-bold text-sm">{msg.senderName}</p>
                                 <p className="text-sm">{msg.text}</p>
-                                <div className="flex justify-end items-center mt-1">
-                                    <CheckCheck className="h-4 w-4 text-blue-500" />
-                                </div>
                             </div>
                             {msg.senderId === user?.uid && (
                                 <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-muted-foreground hover:bg-destructive/20 hover:text-destructive" onClick={() => deleteDocumentNonBlocking(doc(firestore, 'rooms', id, 'messages', msg.id))}>

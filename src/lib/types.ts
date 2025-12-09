@@ -20,6 +20,7 @@ export type ChatMessage = {
   text: string;
   senderId: string;
   senderName: string;
+  senderImage?: string;
   createdAt: any; // Firestore timestamp
 }
 

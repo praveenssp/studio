@@ -24,6 +24,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { doc } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import type { UserProfile } from "@/lib/types";
 
 
 const loginSchema = z.object({
@@ -106,11 +107,11 @@ export default function AuthForm() {
         await updateProfile(userCredential.user, { displayName: values.username });
         
         const userProfileRef = doc(firestore, 'users', userCredential.user.uid);
-        const userProfileData = {
+        const userProfileData: UserProfile = {
             id: userCredential.user.uid,
             username: values.username,
             email: values.email,
-            profileImageUrl: userCredential.user.photoURL || ""
+            profileImageUrl: `https://picsum.photos/seed/${userCredential.user.uid}/100`
         }
         
         setDocumentNonBlocking(userProfileRef, userProfileData, { merge: true });
