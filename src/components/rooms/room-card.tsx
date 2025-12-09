@@ -11,17 +11,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { ImagePlaceholder } from "@/lib/placeholder-images";
-
-type Room = {
-  id: string;
-  name: string;
-  description: string;
-  participants: number;
-  image?: ImagePlaceholder;
-};
+import type { Room } from "@/lib/types";
 
 type RoomCardProps = {
-  room: Room;
+  room: Room & {
+      participants: number;
+      image?: ImagePlaceholder;
+  }
 };
 
 export default function RoomCard({ room }: RoomCardProps) {
@@ -45,6 +41,7 @@ export default function RoomCard({ room }: RoomCardProps) {
       <CardContent className="flex-grow">
         <div className="flex items-center text-sm text-muted-foreground">
           <Users className="h-4 w-4 mr-1" />
+          {/* TODO: This should be a real count */}
           <span>{room.participants} participants</span>
         </div>
       </CardContent>

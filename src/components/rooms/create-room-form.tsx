@@ -19,6 +19,10 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { useFirestore, useUser, addDocumentNonBlocking } from "@/firebase";
+import { collection, serverTimestamp } from "firebase/firestore";
+import { v4 as uuidv4 } from 'uuid';
+
 
 const createRoomSchema = z.object({
   name: z.string().min(3, { message: "Room name must be at least 3 characters." }).max(50),
@@ -29,6 +33,8 @@ const createRoomSchema = z.object({
 export default function CreateRoomForm() {
   const router = useRouter();
   const { toast } = useToast();
+  const firestore = useFirestore();
+  const { user } = useUser();
 
   const form = useForm<z.infer<typeof createRoomSchema>>({
     resolver: zodResolver(createRoomSchema),
@@ -39,15 +45,43 @@ export default function CreateRoomForm() {
     },
   });
 
-  function onSubmit(values: z.infer<typeof createRoomSchema>) {
-    console.log("Room created", values);
-    toast({
-      title: "Room Created!",
-      description: `The room "${values.name}" is now live.`,
-    });
-    // In a real app, this would be the ID of the newly created room
-    const newRoomId = Math.floor(Math.random() * 1000);
-    router.push(`/rooms/${newRoomId}`);
+  async function onSubmit(values: z.infer<typeof createRoomSchema>) {
+    if (!firestore || !user) {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "You must be logged in to create a room.",
+        });
+        return;
+    }
+
+    const newRoomId = uuidv4();
+    const roomData = {
+        id: newRoomId,
+        name: values.name,
+        description: values.description || "",
+        creatorId: user.uid,
+        createdAt: serverTimestamp(),
+        // isPublic: values.isPublic, // This field is not in the schema
+    };
+
+    try {
+        const roomsCollection = collection(firestore, "rooms");
+        await addDocumentNonBlocking(roomsCollection, roomData);
+
+        toast({
+            title: "Room Created!",
+            description: `The room "${values.name}" is now live.`,
+        });
+
+        router.push(`/rooms/${newRoomId}`);
+    } catch (error: any) {
+        toast({
+            variant: "destructive",
+            title: "Failed to create room",
+            description: error.message,
+        });
+    }
   }
 
   return (
@@ -107,7 +141,9 @@ export default function CreateRoomForm() {
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full sm:w-auto">Create Room</Button>
+            <Button type="submit" className="w-full sm:w-auto" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting ? "Creating..." : "Create Room"}
+            </Button>
           </form>
         </Form>
       </CardContent>
