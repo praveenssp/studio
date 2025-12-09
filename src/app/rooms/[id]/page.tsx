@@ -2,14 +2,15 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo } from 'react';
-import { ArrowLeft, Send, Crown, Trash2, CheckCheck } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { ArrowLeft, Send, Crown, Trash2, CheckCheck, MoreVertical, RefreshCw, Eraser } from 'lucide-react';
 import {
   useCollection,
   useDoc,
   useFirestore,
   useUser,
   addDocumentNonBlocking,
+  deleteDocumentNonBlocking,
 } from '@/firebase';
 import type { Room, ChatMessage, UserProfile } from '@/lib/types';
 import { useMemoFirebase } from '@/firebase/provider';
@@ -19,6 +20,9 @@ import {
   orderBy,
   serverTimestamp,
   doc,
+  writeBatch,
+  getDocs,
+  deleteDoc,
 } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -26,7 +30,25 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
 const initialParticipants = [
   {
@@ -64,8 +86,13 @@ const initialParticipants = [
 
 export default function ChatRoomPage({ params }: { params: { id: string } }) {
   const { id } = params;
+  const router = useRouter();
+  const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
+  const [isClearAlertOpen, setIsClearAlertOpen] = useState(false);
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+
 
   const roomRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'rooms', id) : null),
@@ -83,7 +110,7 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
         : null,
     [firestore, id]
   );
-  const { data: messages, isLoading: areMessagesLoading } =
+  const { data: messages, isLoading: areMessagesLoading, error: messagesError } =
     useCollection<ChatMessage>(messagesQuery);
     
   const { data: roomCreatorProfile } = useDoc<UserProfile>(
@@ -112,10 +139,67 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
         id,
         'messages'
       );
-      await addDocumentNonBlocking(messagesCollection, messageData);
+      addDocumentNonBlocking(messagesCollection, messageData);
       form.reset();
     }
   };
+
+  const handleRefresh = () => {
+    window.location.reload();
+  };
+
+  const handleClearMessages = async () => {
+    if (!firestore || !messagesQuery) return;
+    setIsClearAlertOpen(false);
+    try {
+        const querySnapshot = await getDocs(messagesQuery);
+        const batch = writeBatch(firestore);
+        querySnapshot.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+        await batch.commit();
+        toast({ title: "Messages cleared." });
+    } catch (error) {
+        console.error("Error clearing messages: ", error);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Could not clear messages.",
+        });
+    }
+  };
+
+  const handleDeleteRoom = async () => {
+    if (!firestore || !roomRef) return;
+    setIsDeleteAlertOpen(false);
+
+    try {
+      // First, delete all messages in the subcollection
+      if (messagesQuery) {
+        const messagesSnapshot = await getDocs(messagesQuery);
+        const batch = writeBatch(firestore);
+        messagesSnapshot.forEach((doc) => {
+          batch.delete(doc.ref);
+        });
+        await batch.commit();
+      }
+
+      // Then, delete the room document itself
+      await deleteDoc(roomRef);
+
+      toast({ title: `Room "${room?.name}" deleted.` });
+      router.push('/rooms');
+    } catch (error) {
+      console.error("Error deleting room: ", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not delete the room.",
+      });
+    }
+  };
+  
+  const isCreator = user?.uid === room?.creatorId;
 
   if (isRoomLoading) {
     return (
@@ -126,6 +210,7 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
   }
 
   return (
+    <>
     <div className="flex flex-col h-screen bg-background text-card-foreground">
       <header className="container mx-auto px-4 py-3">
         <div className="flex justify-between items-center text-white">
@@ -135,7 +220,32 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
             </Link>
           </Button>
           <h1 className="text-xl font-bold truncate">{room?.name || "Chat Room"}</h1>
-          <Button variant="outline" className="rounded-full bg-white text-blue-600 border-none hover:bg-gray-200">5 Online</Button>
+           <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 hover:text-white">
+                <MoreVertical />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleRefresh}>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                <span>Refresh</span>
+              </DropdownMenuItem>
+              {isCreator && (
+                <>
+                  <DropdownMenuItem onSelect={() => setIsClearAlertOpen(true)}>
+                    <Eraser className="mr-2 h-4 w-4" />
+                    <span>Clear Messages</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={() => setIsDeleteAlertOpen(true)} className="text-destructive focus:text-destructive">
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    <span>Delete Room</span>
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 
@@ -186,7 +296,7 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
                                 </div>
                             </div>
                             {msg.senderId === user?.uid && (
-                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-muted-foreground hover:bg-destructive/20 hover:text-destructive">
+                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-muted-foreground hover:bg-destructive/20 hover:text-destructive" onClick={() => deleteDocumentNonBlocking(doc(firestore, 'rooms', id, 'messages', msg.id))}>
                                     <Trash2 className="h-4 w-4" />
                                 </Button>
                             )}
@@ -224,5 +334,44 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
 
       </main>
     </div>
+    
+      {/* Alert Dialog for Clearing Messages */}
+      <AlertDialog open={isClearAlertOpen} onOpenChange={setIsClearAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete all messages in this room. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleClearMessages} className="bg-destructive hover:bg-destructive/90">
+              Clear Messages
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Alert Dialog for Deleting Room */}
+      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this room?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the room and all its messages. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteRoom} className="bg-destructive hover:bg-destructive/90">
+              Delete Room
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
+
+    
