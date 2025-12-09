@@ -117,25 +117,25 @@ export default function PrivateChatPage({ params }: { params: { id: string } }) 
       </header>
 
       <main className="flex-grow flex flex-col container mx-auto px-4">
-        <div className="flex-grow flex flex-col justify-end p-4 space-y-4 overflow-y-auto">
+        <div className="flex-grow flex flex-col justify-end p-2 space-y-2 overflow-y-auto">
           {areMessagesLoading ? (
             <p>Loading messages...</p>
           ) : (
             messages?.map(msg => (
               <div
                 key={msg.id}
-                className={`flex gap-2.5 ${
+                className={`flex text-sm ${
                   msg.senderId === user?.uid ? 'justify-end' : 'justify-start'
                 }`}
               >
                 <div
-                  className={`max-w-xs lg:max-w-md p-3 rounded-2xl ${
+                  className={`max-w-[70%] p-3 rounded-2xl ${
                     msg.senderId === user?.uid
                       ? 'bg-primary text-primary-foreground rounded-br-none'
-                      : 'bg-[#1e1e1e] text-white rounded-bl-none'
+                      : 'bg-[#2a2a2a] text-white rounded-bl-none'
                   }`}
                 >
-                  {msg.text}
+                  <p>{msg.text}</p>
                 </div>
               </div>
             ))
