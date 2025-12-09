@@ -389,6 +389,9 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
                             <DropdownMenuItem onClick={() => router.push(`/profile`)}>
                                 <User className="mr-2 h-4 w-4" /> View Profile
                             </DropdownMenuItem>
+                             <DropdownMenuItem>
+                                <UserPlus className="mr-2 h-4 w-4" /> Follow
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleStartPrivateChat(roomCreatorProfile)}>
                                 <MessageSquare className="mr-2 h-4 w-4" /> Message
                             </DropdownMenuItem>
