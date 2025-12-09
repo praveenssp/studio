@@ -16,8 +16,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth, addDocumentNonBlocking } from "@/firebase";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { useAuth, initiateEmailSignIn, initiateEmailSignUp } from "@/firebase";
+import { onAuthStateChanged, updateProfile, UserCredential } from "firebase/auth";
 import { useEffect, useState } from "react";
 import { useUser } from "@/firebase/provider";
 import { Card, CardContent } from "../ui/card";
@@ -44,12 +44,38 @@ export default function AuthForm() {
   const auth = useAuth();
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (user) {
       router.push("/rooms");
     }
   }, [user, router]);
+  
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setIsSubmitting(false);
+      if (user) {
+         toast({
+          title: "Success!",
+          description: "Redirecting to your rooms...",
+        });
+        router.push("/rooms");
+      }
+    }, (error) => {
+        setIsSubmitting(false);
+        toast({
+            variant: "destructive",
+            title: "Authentication Failed",
+            description: error.code === 'auth/invalid-credential' 
+                ? 'Incorrect email or password. Please try again.'
+                : error.message,
+        });
+    });
+
+    return () => unsubscribe();
+  }, [auth, router, toast]);
+  
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -69,20 +95,8 @@ export default function AuthForm() {
   });
 
   async function onLoginSubmit(values: z.infer<typeof loginSchema>) {
-    try {
-      await signInWithEmailAndPassword(auth, values.email, values.password);
-      toast({
-        title: "Login Successful",
-        description: "Redirecting to your rooms...",
-      });
-      router.push("/rooms");
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Login Failed",
-        description: error.message,
-      });
-    }
+    setIsSubmitting(true);
+    initiateEmailSignIn(auth, values.email, values.password);
   }
 
   async function onRegisterSubmit(values: z.infer<typeof registerSchema>) {
@@ -94,31 +108,29 @@ export default function AuthForm() {
         });
         return;
     }
+    setIsSubmitting(true);
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-      await updateProfile(userCredential.user, { displayName: values.username });
-      
-      const userProfileRef = doc(firestore, 'users', userCredential.user.uid);
-      const userProfileData = {
-          id: userCredential.user.uid,
-          username: values.username,
-          email: values.email,
-          profileImageUrl: userCredential.user.photoURL || ""
-      }
-      
-      setDocumentNonBlocking(userProfileRef, userProfileData, { merge: true });
+        const userCredential = await auth.createUserWithEmailAndPassword(values.email, values.password);
+        await updateProfile(userCredential.user, { displayName: values.username });
+        
+        const userProfileRef = doc(firestore, 'users', userCredential.user.uid);
+        const userProfileData = {
+            id: userCredential.user.uid,
+            username: values.username,
+            email: values.email,
+            profileImageUrl: userCredential.user.photoURL || ""
+        }
+        
+        setDocumentNonBlocking(userProfileRef, userProfileData, { merge: true });
 
-      toast({
-        title: "Registration Successful",
-        description: "Redirecting to the rooms...",
-      });
-      router.push("/rooms");
+        // The onAuthStateChanged listener will handle redirection
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Registration Failed",
-        description: error.message,
-      });
+        setIsSubmitting(false);
+        toast({
+            variant: "destructive",
+            title: "Registration Failed",
+            description: error.message,
+        });
     }
   }
   
@@ -167,8 +179,8 @@ export default function AuthForm() {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="w-full rounded-full" disabled={loginForm.formState.isSubmitting}>
-                  {loginForm.formState.isSubmitting ? 'Signing In...' : 'Sign In'}
+                <Button type="submit" className="w-full rounded-full" disabled={isSubmitting}>
+                  {isSubmitting ? 'Signing In...' : 'Sign In'}
                 </Button>
               </form>
             </Form>
@@ -212,8 +224,8 @@ export default function AuthForm() {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="w-full rounded-full" disabled={registerForm.formState.isSubmitting}>
-                  {registerForm.formState.isSubmitting ? 'Signing Up...' : 'Sign Up'}
+                <Button type="submit" className="w-full rounded-full" disabled={isSubmitting}>
+                  {isSubmitting ? 'Signing Up...' : 'Sign Up'}
                 </Button>
               </form>
             </Form>
