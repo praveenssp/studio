@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/firebase";
-import { updateProfile, UserCredential } from "firebase/auth";
+import { createUserWithEmailAndPassword, updateProfile, UserCredential, signInWithEmailAndPassword } from "firebase/auth";
 import { useEffect, useState } from "react";
 import { useUser } from "@/firebase/provider";
 import { Card, CardContent } from "../ui/card";
@@ -72,7 +72,7 @@ export default function AuthForm() {
   async function onLoginSubmit(values: z.infer<typeof loginSchema>) {
     setIsSubmitting(true);
     try {
-      await auth.signInWithEmailAndPassword(values.email, values.password);
+      await signInWithEmailAndPassword(auth, values.email, values.password);
       toast({
         title: "Success!",
         description: "Redirecting to your rooms...",
@@ -102,7 +102,7 @@ export default function AuthForm() {
     }
     setIsSubmitting(true);
     try {
-        const userCredential = await auth.createUserWithEmailAndPassword(values.email, values.password);
+        const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
         await updateProfile(userCredential.user, { displayName: values.username });
         
         const userProfileRef = doc(firestore, 'users', userCredential.user.uid);
