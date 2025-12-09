@@ -236,9 +236,8 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
         <div className="grid grid-cols-4 gap-3">
           {[...Array(4)].map((_, index) => (
             <div key={index} className="flex flex-col items-center gap-1">
-                 <Avatar className="h-16 w-16 border-2 border-dashed border-gray-400 bg-black/10">
-                    <AvatarImage src={emptySeatImage?.imageUrl} alt="Empty seat" />
-                    <AvatarFallback>
+                 <Avatar className="h-16 w-16 border-2 border-dashed border-gray-400 bg-black/10 flex items-center justify-center">
+                    <AvatarFallback className="bg-transparent">
                         <UserPlus className="text-gray-400" />
                     </AvatarFallback>
                 </Avatar>
