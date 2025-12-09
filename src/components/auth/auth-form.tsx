@@ -104,17 +104,22 @@ export default function AuthForm() {
     setIsSubmitting(true);
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-        await updateProfile(userCredential.user, { displayName: values.username });
+        
+        const profileImageUrl = `https://picsum.photos/seed/${userCredential.user.uid}/100`;
+        await updateProfile(userCredential.user, { 
+            displayName: values.username,
+            photoURL: profileImageUrl 
+        });
         
         const userProfileRef = doc(firestore, 'users', userCredential.user.uid);
         const userProfileData: UserProfile = {
             id: userCredential.user.uid,
             username: values.username,
             email: values.email,
-            profileImageUrl: `https://picsum.photos/seed/${userCredential.user.uid}/100`
+            profileImageUrl: profileImageUrl
         }
         
-        setDocumentNonBlocking(userProfileRef, userProfileData, { merge: true });
+        await setDocumentNonBlocking(userProfileRef, userProfileData);
 
         toast({
           title: "Registration Successful!",

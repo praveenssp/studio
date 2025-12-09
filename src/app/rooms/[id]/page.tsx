@@ -114,7 +114,16 @@ export default function ChatRoomPage({ params: { id } }: { params: { id: string 
   );
 
   const isCreator = user?.uid === room?.creatorId;
-  const allParticipants = useMemo(() => [roomCreatorProfile, ...participants.slice(1)].filter(Boolean) as (UserProfile | {id: string; username: string; profileImageUrl: string})[], [roomCreatorProfile, participants]);
+  
+  const allParticipants = useMemo(() => {
+    const participantMap = new Map();
+    if (roomCreatorProfile) {
+        participantMap.set(roomCreatorProfile.id, roomCreatorProfile);
+    }
+    participants.forEach(p => participantMap.set(p.id, p));
+    return Array.from(participantMap.values());
+  }, [roomCreatorProfile, participants]);
+
 
    const handleStartPrivateChat = async (targetUser: {id: string, username: string, profileImageUrl?: string}) => {
     if (!firestore || !user || !currentUserProfile || !targetUser || user.uid === targetUser.id) return;
@@ -151,7 +160,7 @@ export default function ChatRoomPage({ params: { id } }: { params: { id: string 
                 createdAt: serverTimestamp(),
             };
             const chatDocRef = doc(firestore, 'privateChats', newChatId);
-            setDocumentNonBlocking(chatDocRef, newChatData, {});
+            await setDocumentNonBlocking(chatDocRef, newChatData);
             router.push(`/inbox/${newChatId}`);
         }
     } catch (error) {
@@ -417,14 +426,16 @@ export default function ChatRoomPage({ params: { id } }: { params: { id: string 
               )}
               
               {/* Participant Seats */}
-              {participants.slice(1).map(p => (
+              {participants.slice(0).map(p => {
+                if (p.id === roomCreatorProfile?.id) return null; // Don't render admin again
+                return (
                  <div key={p.id} className="flex flex-col items-center gap-1">
                      <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <button><Avatar className="h-16 w-16"><AvatarImage src={p.profileImageUrl} /><AvatarFallback>{p.username.charAt(0)}</AvatarFallback></Avatar></button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
-                            <DropdownMenuItem><User className="mr-2 h-4 w-4" /> View Profile</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => router.push(`/profile/${p.id}`)}><User className="mr-2 h-4 w-4" /> View Profile</DropdownMenuItem>
                             <DropdownMenuItem><UserPlus className="mr-2 h-4 w-4" /> Follow</DropdownMenuItem>
                              <DropdownMenuItem onClick={() => handleStartPrivateChat(p)}><MessageSquare className="mr-2 h-4 w-4" /> Message</DropdownMenuItem>
                             {isCreator && <DropdownMenuSeparator />}
@@ -434,10 +445,10 @@ export default function ChatRoomPage({ params: { id } }: { params: { id: string 
                      </DropdownMenu>
                     <p className="text-xs text-white font-medium">{p.username}</p>
                 </div>
-              ))}
+              )})}
 
               {/* Empty Seats */}
-              {[...Array(Math.max(0, 5 - participants.length))].map((_, index) => (
+              {[...Array(Math.max(0, 5 - allParticipants.length))].map((_, index) => (
                 <div key={`empty-${index}`} className="flex flex-col items-center gap-1">
                      <Button variant="ghost" className="h-16 w-16 rounded-full border-2 border-dashed border-gray-400 bg-black/10 flex items-center justify-center p-0" onClick={handleRequestToJoin}>
                         <UserPlus className="text-gray-400 h-6 w-6" />
