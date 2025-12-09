@@ -373,25 +373,30 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
         <div className="flex gap-3 justify-center items-start">
             <div className="grid grid-cols-5 gap-3 flex-1">
               {/* Admin Seat */}
-              <div className="flex flex-col items-center gap-1">
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <button className="relative">
-                            <Avatar className="h-16 w-16 border-2 border-yellow-400">
-                                <AvatarImage src={roomCreatorProfile?.profileImageUrl} />
-                                <AvatarFallback className="text-lg">{roomCreatorProfile?.username?.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <Crown className="absolute -top-2 -right-2 h-6 w-6 text-yellow-400 transform rotate-[30deg]" fill="currentColor" />
-                        </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                        <DropdownMenuItem>
-                            <User className="mr-2 h-4 w-4" /> View Profile
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-                <p className="text-xs text-black font-medium">{roomCreatorProfile?.username || 'Admin'}</p>
-              </div>
+              {roomCreatorProfile && (
+                <div className="flex flex-col items-center gap-1">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <button className="relative">
+                                <Avatar className="h-16 w-16 border-2 border-yellow-400">
+                                    <AvatarImage src={roomCreatorProfile?.profileImageUrl} />
+                                    <AvatarFallback className="text-lg">{roomCreatorProfile?.username?.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <Crown className="absolute -top-2 -right-2 h-6 w-6 text-yellow-400 transform rotate-[30deg]" fill="currentColor" />
+                            </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                            <DropdownMenuItem onClick={() => router.push(`/profile`)}>
+                                <User className="mr-2 h-4 w-4" /> View Profile
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleStartPrivateChat(roomCreatorProfile)}>
+                                <MessageSquare className="mr-2 h-4 w-4" /> Message
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                    <p className="text-xs text-black font-medium">{roomCreatorProfile?.username || 'Admin'}</p>
+                </div>
+              )}
               
               {/* Participant Seats */}
               {participants.slice(1).map(p => (
