@@ -14,3 +14,11 @@ export type UserProfile = {
     profileImageUrl?: string;
     phoneNumber?: string;
 }
+
+export type ChatMessage = {
+  id: string;
+  text: string;
+  senderId: string;
+  senderName: string;
+  createdAt: any; // Firestore timestamp
+}

@@ -68,6 +68,36 @@
         "creatorId",
         "createdAt"
       ]
+    },
+    "ChatMessage": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ChatMessage",
+      "type": "object",
+      "description": "Represents a single message within a chat room.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the message."
+        },
+        "text": {
+          "type": "string",
+          "description": "The content of the message."
+        },
+        "senderId": {
+          "type": "string",
+          "description": "The ID of the user who sent the message."
+        },
+        "senderName": {
+          "type": "string",
+          "description": "The display name of the user who sent the message."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the message was sent."
+        }
+      },
+      "required": ["id", "text", "senderId", "senderName", "createdAt"]
     }
   },
   "auth": {
@@ -109,8 +139,28 @@
             }
           ]
         }
+      },
+       {
+        "path": "/rooms/{roomId}/messages/{messageId}",
+        "definition": {
+          "entityName": "ChatMessage",
+          "schema": {
+            "$ref": "#/backend/entities/ChatMessage"
+          },
+          "description": "Stores messages for a specific room. All signed-in users can read and write messages.",
+          "params": [
+            {
+              "name": "roomId",
+              "description": "The ID of the room."
+            },
+            {
+              "name": "messageId",
+              "description": "The ID of the message."
+            }
+          ]
+        }
       }
     ],
-    "reasoning": "The Firestore data structure is designed to support the 'Whisper Rooms' application, focusing on secure and efficient data access.  It leverages path-based ownership and denormalization to achieve Authorization Independence and support the required QAPs.\n\n*   **User Profiles:** User profiles are stored under `/users/{userId}`. This path-based ownership simplifies security rules, ensuring that only the authenticated user can access their profile data.\n*   **Rooms:** Rooms are stored in the `/rooms/{roomId}` collection. The `creatorId` field in each room document is used for authorization.  This allows the creator to manage the room, while other users might have read-only access.\n\n**Authorization Independence:**\n*   The `creatorId` is denormalized in the Room document. This eliminates the need to perform `get()` operations to verify the user's role when accessing the room.\n\n**QAPs Support:**\n*   Secure `list` operations are supported by segregating data based on ownership.  Only the authenticated user can access their profile data.  Rooms can be listed, and security rules can enforce that only the room creator can modify a room.\n"
+    "reasoning": "The Firestore data structure is designed to support the 'Whisper Rooms' application, focusing on secure and efficient data access.  It leverages path-based ownership and denormalization to achieve Authorization Independence and support the required QAPs.\n\n*   **User Profiles:** User profiles are stored under `/users/{userId}`. This path-based ownership simplifies security rules, ensuring that only the authenticated user can access their profile data.\n*   **Rooms:** Rooms are stored in the `/rooms/{roomId}` collection. The `creatorId` field in each room document is used for authorization.  This allows the creator to manage the room, while other users might have read-only access.\n* **Chat Messages:** Messages are stored in a subcollection under each room `/rooms/{roomId}/messages/{messageId}`. This allows for efficient querying of messages for a specific room and scales well.\n\n**Authorization Independence:**\n*   The `creatorId` is denormalized in the Room document. This eliminates the need to perform `get()` operations to verify the user's role when accessing the room.\n"
   }
 }

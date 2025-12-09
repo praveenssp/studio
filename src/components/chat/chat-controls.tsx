@@ -26,12 +26,11 @@ export default function ChatControls() {
   };
 
   return (
-    <footer className="bg-card/80 border-t backdrop-blur-sm sticky bottom-0">
-      <div className="container mx-auto px-4 py-3 flex justify-center items-center gap-4">
+    <div className="flex justify-center items-center gap-4">
         <Button
           variant={isMuted ? "outline" : "default"}
-          size="lg"
-          className="rounded-full h-14 w-14 p-0"
+          size="icon"
+          className="rounded-full h-12 w-12"
           onClick={toggleMute}
           aria-label={isMuted ? "Unmute" : "Mute"}
         >
@@ -43,14 +42,13 @@ export default function ChatControls() {
         </Button>
         <Button
           variant="destructive"
-          size="lg"
-          className="rounded-full h-14 w-14 p-0"
+          size="icon"
+          className="rounded-full h-12 w-12"
           onClick={leaveRoom}
           aria-label="Leave Room"
         >
           <PhoneOff className="h-6 w-6" />
         </Button>
-      </div>
-    </footer>
+    </div>
   );
 }

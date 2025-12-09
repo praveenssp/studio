@@ -12,7 +12,8 @@
  * - /users/{userId}: Stores private UserProfile documents. Access is strictly limited
  *   to the authenticated owner of the document.
  * - /rooms/{roomId}: Stores Room documents that are publicly readable by any client,
- *   but writable only by the user who created them.
+ *   but writable only by the user who created them. This collection also contains
+ *   a 'messages' subcollection for chat.
  *
  * Key Security Decisions:
  * - User Privacy: Listing users from the top-level /users collection is explicitly
@@ -21,6 +22,8 @@
  *   users to browse and discover available voice chat rooms.
  * - Creator Control: Write access (update, delete) to any room is restricted to its
  *   original creator, ensuring content integrity.
+ * - Chat Participation: Any authenticated user can read and write messages in any
+ *   room's 'messages' subcollection.
  * - Authorization Independence: Room documents contain a denormalized 'creatorId' field.
  *   This avoids costly and slow 'get()' calls to other documents during rule evaluation,
  *   making authorization checks fast and efficient.
@@ -97,6 +100,18 @@ service cloud.firestore {
       return data.creatorId == resource.data.creatorId
           && data.id == resource.data.id;
     }
+    
+    /**
+     * Validates required fields for creating a ChatMessage document.
+     */
+    function hasValidChatMessageDataForCreate(messageId) {
+        let data = request.resource.data;
+        return data.id == messageId
+            && data.senderId == request.auth.uid
+            && data.text is string
+            && data.text.size() > 0 && data.text.size() <= 280
+            && data.createdAt == request.time;
+    }
 
     //-------------------------------------------------------------------------
     // Collection Rules
@@ -106,11 +121,6 @@ service cloud.firestore {
      * @description Manages user profile documents. Only the user themselves can
      *              read, create, update, or delete their own profile.
      * @path        /users/{userId}
-     * @allow       (get, create, update, delete) A signed-in user with UID 'user123'
-     *              accessing the document at /users/user123.
-     * @deny        (get) A user with UID 'user456' trying to access /users/user123.
-     * @deny        (list) Any user trying to list the /users collection.
-     * @principle   Restricts access to a user's own data tree (Path-based Ownership).
      */
     match /users/{userId} {
       allow get: if isOwner(userId);
@@ -121,16 +131,8 @@ service cloud.firestore {
     }
 
     /**
-     * @description Manages voice chat room documents. Rooms are publicly readable
-     *              but can only be created, updated, or deleted by authenticated users,
-     *              with modification rights restricted to the original creator.
+     * @description Manages voice chat room documents and their subcollections.
      * @path        /rooms/{roomId}
-     * @allow       (get, list) Any user, signed-in or not, can read room data.
-     * @allow       (create) Any signed-in user can create a new room document.
-     * @allow       (update) The user whose UID matches the room's 'creatorId' field.
-     * @deny        (update, delete) A user trying to modify a room where their UID
-     *              does not match the 'creatorId' field.
-     * @principle   Enforces document ownership for writes on a public collection.
      */
     match /rooms/{roomId} {
       allow get: if true;
@@ -138,6 +140,17 @@ service cloud.firestore {
       allow create: if isSignedIn() && hasValidRoomDataForCreate(roomId);
       allow update: if isExistingOwner(resource.data.creatorId) && hasValidRoomDataForUpdate();
       allow delete: if isExistingOwner(resource.data.creatorId);
+
+      /**
+       * @description Manages chat messages within a room. Any authenticated user
+       *              can read and write messages.
+       * @path        /rooms/{roomId}/messages/{messageId}
+       */
+      match /messages/{messageId} {
+        allow list, get: if isSignedIn();
+        allow create: if isSignedIn() && hasValidChatMessageDataForCreate(messageId);
+        allow update, delete: if false; // Messages are immutable
+      }
     }
   }
 }
