@@ -28,12 +28,13 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export default function PrivateChatPage({ params }: { params: { id: string } }) {
+  const { id } = params;
   const firestore = useFirestore();
   const { user } = useUser();
 
   const chatRef = useMemoFirebase(
-    () => (firestore ? doc(firestore, 'privateChats', params.id) : null),
-    [firestore, params.id]
+    () => (firestore ? doc(firestore, 'privateChats', id) : null),
+    [firestore, id]
   );
   const { data: chat, isLoading: isChatLoading } = useDoc<PrivateChat>(chatRef);
 
@@ -41,11 +42,11 @@ export default function PrivateChatPage({ params }: { params: { id: string } }) 
     () =>
       firestore
         ? query(
-            collection(firestore, 'privateChats', params.id, 'messages'),
+            collection(firestore, 'privateChats', id, 'messages'),
             orderBy('createdAt', 'asc')
           )
         : null,
-    [firestore, params.id]
+    [firestore, id]
   );
   const { data: messages, isLoading: areMessagesLoading } = useCollection<PrivateMessage>(messagesQuery);
   
@@ -77,10 +78,10 @@ export default function PrivateChatPage({ params }: { params: { id: string } }) 
         createdAt: messageData.createdAt,
       }
 
-      const messagesCollection = collection(firestore, 'privateChats', params.id, 'messages');
+      const messagesCollection = collection(firestore, 'privateChats', id, 'messages');
       await addDocumentNonBlocking(messagesCollection, messageData);
       
-      const chatDocRef = doc(firestore, 'privateChats', params.id);
+      const chatDocRef = doc(firestore, 'privateChats', id);
       await updateDocumentNonBlocking(chatDocRef, { lastMessage: lastMessageData });
 
       form.reset();

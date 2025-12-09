@@ -63,12 +63,13 @@ const initialParticipants = [
 
 
 export default function ChatRoomPage({ params }: { params: { id: string } }) {
+  const { id } = params;
   const firestore = useFirestore();
   const { user } = useUser();
 
   const roomRef = useMemoFirebase(
-    () => (firestore ? doc(firestore, 'rooms', params.id) : null),
-    [firestore, params.id]
+    () => (firestore ? doc(firestore, 'rooms', id) : null),
+    [firestore, id]
   );
   const { data: room, isLoading: isRoomLoading } = useDoc<Room>(roomRef);
 
@@ -76,11 +77,11 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
     () =>
       firestore
         ? query(
-            collection(firestore, 'rooms', params.id, 'messages'),
+            collection(firestore, 'rooms', id, 'messages'),
             orderBy('createdAt', 'asc')
           )
         : null,
-    [firestore, params.id]
+    [firestore, id]
   );
   const { data: messages, isLoading: areMessagesLoading } =
     useCollection<ChatMessage>(messagesQuery);
@@ -108,7 +109,7 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
       const messagesCollection = collection(
         firestore,
         'rooms',
-        params.id,
+        id,
         'messages'
       );
       await addDocumentNonBlocking(messagesCollection, messageData);
@@ -133,7 +134,7 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
               <ArrowLeft />
             </Link>
           </Button>
-          <h1 className="text-xl font-bold truncate">MSG Chatroom</h1>
+          <h1 className="text-xl font-bold truncate">{room?.name || "Chat Room"}</h1>
           <Button variant="outline" className="rounded-full bg-white text-blue-600 border-none hover:bg-gray-200">5 Online</Button>
         </div>
       </header>
