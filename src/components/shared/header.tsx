@@ -6,7 +6,8 @@ import {
   PlusCircle,
   LogOut,
   User,
-  Settings
+  Settings,
+  Inbox
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -66,6 +67,10 @@ export default function Header() {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
+               <DropdownMenuItem onClick={() => router.push("/inbox")}>
+                <Inbox className="mr-2 h-4 w-4" />
+                <span>Inbox</span>
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => router.push("/profile")}>
                 <User className="mr-2 h-4 w-4" />
                 <span>Profile</span>

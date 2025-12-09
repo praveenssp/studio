@@ -22,3 +22,22 @@ export type ChatMessage = {
   senderName: string;
   createdAt: any; // Firestore timestamp
 }
+
+export type PrivateChat = {
+    id: string;
+    participantIds: string[];
+    participants: Record<string, Pick<UserProfile, 'username' | 'profileImageUrl'>>;
+    lastMessage?: {
+        text: string;
+        senderId: string;
+        createdAt: any;
+    };
+    createdAt: any;
+}
+
+export type PrivateMessage = {
+    id: string;
+    text: string;
+    senderId: string;
+    createdAt: any;
+}

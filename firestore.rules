@@ -8,25 +8,20 @@
  * is to deny all access unless explicitly granted.
  *
  * Data Structure:
- * The Firestore database is organized into two top-level collections:
- * - /users/{userId}: Stores private UserProfile documents. Access is strictly limited
- *   to the authenticated owner of the document.
- * - /rooms/{roomId}: Stores Room documents that are publicly readable by any client,
- *   but writable only by the user who created them. This collection also contains
- *   a 'messages' subcollection for chat.
+ * The Firestore database is organized into several top-level collections:
+ * - /users/{userId}: Stores private UserProfile documents.
+ * - /rooms/{roomId}: Stores public Room documents.
+ * - /privateChats/{chatId}: Stores private conversation metadata.
  *
  * Key Security Decisions:
  * - User Privacy: Listing users from the top-level /users collection is explicitly
  *   disallowed to prevent user enumeration and protect privacy.
  * - Public Discoverability: The /rooms collection is publicly readable to allow
  *   users to browse and discover available voice chat rooms.
- * - Creator Control: Write access (update, delete) to any room is restricted to its
- *   original creator, ensuring content integrity.
- * - Chat Participation: Any authenticated user can read and write messages in any
- *   room's 'messages' subcollection.
- * - Authorization Independence: Room documents contain a denormalized 'creatorId' field.
- *   This avoids costly and slow 'get()' calls to other documents during rule evaluation,
- *   making authorization checks fast and efficient.
+ * - Creator Control: Write access to a room is restricted to its creator.
+ * - Chat Participation: Any authenticated user can read/write messages in a public room.
+ * - Private Chat Security: Private chats and their messages are only accessible to
+ *   the participants of that chat.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -36,74 +31,40 @@ service cloud.firestore {
     // Helper Functions
     //-------------------------------------------------------------------------
 
-    /**
-     * Returns true if the user is authenticated.
-     */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * Returns true if the authenticated user's UID matches the provided userId.
-     * This is the core function for enforcing document ownership.
-     * @param userId The user ID to check against the authenticated user.
-     */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /**
-     * Returns true if the user is the owner AND the document already exists.
-     * Used for safe update and delete operations.
-     * @param userId The user ID to check against the authenticated user.
-     */
     function isExistingOwner(userId) {
       return isOwner(userId) && resource != null;
     }
 
-    /**
-     * Validates required fields for creating a UserProfile document.
-     * Ensures the document's internal 'id' matches the document's path ID.
-     * This is a critical check for maintaining data integrity.
-     */
     function hasValidUserProfileDataForCreate(userId) {
       let data = request.resource.data;
       return data.id == userId;
     }
 
-    /**
-     * Validates required fields for updating a UserProfile document.
-     * Enforces immutability of the user 'id' field to prevent re-association.
-     */
     function hasValidUserProfileDataForUpdate() {
       let data = request.resource.data;
       return data.id == resource.data.id;
     }
 
-    /**
-     * Validates required fields for creating a Room document.
-     * Ensures the incoming 'creatorId' matches the authenticated user and the
-     * internal 'id' matches the document path ID for data consistency.
-     */
     function hasValidRoomDataForCreate(roomId) {
       let data = request.resource.data;
       return data.creatorId == request.auth.uid
           && data.id == roomId;
     }
 
-    /**
-     * Validates required fields for updating a Room document.
-     * Enforces immutability of critical relational fields 'creatorId' and 'id'.
-     */
     function hasValidRoomDataForUpdate() {
       let data = request.resource.data;
       return data.creatorId == resource.data.creatorId
           && data.id == resource.data.id;
     }
     
-    /**
-     * Validates required fields for creating a ChatMessage document.
-     */
     function hasValidChatMessageDataForCreate(messageId) {
         let data = request.resource.data;
         return data.id == messageId
@@ -112,16 +73,24 @@ service cloud.firestore {
             && data.text.size() > 0 && data.text.size() <= 280
             && data.createdAt == request.time;
     }
+    
+    function isParticipant(chatId) {
+        return isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/privateChats/$(chatId)).data.participantIds;
+    }
+    
+    function hasValidPrivateMessageDataForCreate(messageId) {
+        let data = request.resource.data;
+        return data.id == messageId
+            && data.senderId == request.auth.uid
+            && data.text is string
+            && data.text.size() > 0
+            && data.createdAt == request.time;
+    }
 
     //-------------------------------------------------------------------------
     // Collection Rules
     //-------------------------------------------------------------------------
 
-    /**
-     * @description Manages user profile documents. Only the user themselves can
-     *              read, create, update, or delete their own profile.
-     * @path        /users/{userId}
-     */
     match /users/{userId} {
       allow get: if isOwner(userId);
       allow list: if false;
@@ -130,10 +99,6 @@ service cloud.firestore {
       allow delete: if isExistingOwner(userId);
     }
 
-    /**
-     * @description Manages voice chat room documents and their subcollections.
-     * @path        /rooms/{roomId}
-     */
     match /rooms/{roomId} {
       allow get: if true;
       allow list: if true;
@@ -141,16 +106,24 @@ service cloud.firestore {
       allow update: if isExistingOwner(resource.data.creatorId) && hasValidRoomDataForUpdate();
       allow delete: if isExistingOwner(resource.data.creatorId);
 
-      /**
-       * @description Manages chat messages within a room. Any authenticated user
-       *              can read and write messages.
-       * @path        /rooms/{roomId}/messages/{messageId}
-       */
       match /messages/{messageId} {
         allow list, get: if isSignedIn();
         allow create: if isSignedIn() && hasValidChatMessageDataForCreate(messageId);
-        allow update, delete: if false; // Messages are immutable
+        allow update, delete: if false;
       }
+    }
+    
+    match /privateChats/{chatId} {
+        allow get, list: if isParticipant(chatId);
+        allow create: if isSignedIn() && request.auth.uid in request.resource.data.participantIds;
+        allow update: if isParticipant(chatId); // For updating lastMessage
+        allow delete: if false;
+        
+        match /messages/{messageId} {
+            allow list, get: if isParticipant(chatId);
+            allow create: if isParticipant(chatId) && hasValidPrivateMessageDataForCreate(messageId);
+            allow update, delete: if false;
+        }
     }
   }
 }

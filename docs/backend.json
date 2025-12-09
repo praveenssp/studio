@@ -98,6 +98,49 @@
         }
       },
       "required": ["id", "text", "senderId", "senderName", "createdAt"]
+    },
+     "PrivateChat": {
+      "title": "PrivateChat",
+      "type": "object",
+      "description": "Represents a private conversation between two or more users.",
+      "properties": {
+        "id": { "type": "string" },
+        "participantIds": { "type": "array", "items": { "type": "string" } },
+        "participants": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "username": { "type": "string" },
+              "profileImageUrl": { "type": "string", "format": "uri" }
+            },
+            "required": ["username"]
+          }
+        },
+        "lastMessage": {
+          "type": "object",
+          "properties": {
+            "text": { "type": "string" },
+            "senderId": { "type": "string" },
+            "createdAt": { "type": "string", "format": "date-time" }
+          },
+          "required": ["text", "senderId", "createdAt"]
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "participantIds", "participants", "createdAt"]
+    },
+    "PrivateMessage": {
+      "title": "PrivateMessage",
+      "type": "object",
+      "description": "A message within a private chat.",
+      "properties": {
+        "id": { "type": "string" },
+        "text": { "type": "string" },
+        "senderId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "text", "senderId", "createdAt"]
     }
   },
   "auth": {
@@ -159,8 +202,35 @@
             }
           ]
         }
+      },
+      {
+        "path": "/privateChats/{chatId}",
+        "definition": {
+          "entityName": "PrivateChat",
+          "schema": {
+            "$ref": "#/backend/entities/PrivateChat"
+          },
+          "description": "Stores metadata for a private conversation. Only participants can read the chat info.",
+          "params": [
+            { "name": "chatId", "description": "The unique ID for the private chat." }
+          ]
+        }
+      },
+      {
+        "path": "/privateChats/{chatId}/messages/{messageId}",
+        "definition": {
+          "entityName": "PrivateMessage",
+          "schema": {
+            "$ref": "#/backend/entities/PrivateMessage"
+          },
+          "description": "Stores messages for a specific private chat. Only participants can read/write.",
+          "params": [
+            { "name": "chatId", "description": "The ID of the private chat." },
+            { "name": "messageId", "description": "The unique ID for the message." }
+          ]
+        }
       }
     ],
-    "reasoning": "The Firestore data structure is designed to support the 'Whisper Rooms' application, focusing on secure and efficient data access.  It leverages path-based ownership and denormalization to achieve Authorization Independence and support the required QAPs.\n\n*   **User Profiles:** User profiles are stored under `/users/{userId}`. This path-based ownership simplifies security rules, ensuring that only the authenticated user can access their profile data.\n*   **Rooms:** Rooms are stored in the `/rooms/{roomId}` collection. The `creatorId` field in each room document is used for authorization.  This allows the creator to manage the room, while other users might have read-only access.\n* **Chat Messages:** Messages are stored in a subcollection under each room `/rooms/{roomId}/messages/{messageId}`. This allows for efficient querying of messages for a specific room and scales well.\n\n**Authorization Independence:**\n*   The `creatorId` is denormalized in the Room document. This eliminates the need to perform `get()` operations to verify the user's role when accessing the room.\n"
+    "reasoning": "The Firestore data structure is designed to support the 'Whisper Rooms' application, focusing on secure and efficient data access.  It leverages path-based ownership and denormalization to achieve Authorization Independence and support the required QAPs.\n\n*   **User Profiles:** User profiles are stored under `/users/{userId}`. This path-based ownership simplifies security rules, ensuring that only the authenticated user can access their profile data.\n*   **Rooms:** Rooms are stored in the `/rooms/{roomId}` collection. The `creatorId` field in each room document is used for authorization.  This allows the creator to manage the room, while other users might have read-only access.\n* **Chat Messages:** Messages are stored in a subcollection under each room `/rooms/{roomId}/messages/{messageId}`. This allows for efficient querying of messages for a specific room and scales well.\n* **Private Chats:** Private chats are stored at `/privateChats/{chatId}`. Access is restricted to participants via security rules checking the `participantIds` array. The subcollection `/privateChats/{chatId}/messages/{messageId}` holds the actual messages for that chat."
   }
 }
