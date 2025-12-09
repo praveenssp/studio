@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,8 +20,8 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { useFirestore, useUser, addDocumentNonBlocking } from "@/firebase";
-import { collection, serverTimestamp } from "firebase/firestore";
+import { useFirestore, useUser, setDocumentNonBlocking } from "@/firebase";
+import { doc, serverTimestamp } from "firebase/firestore";
 import { v4 as uuidv4 } from 'uuid';
 
 
@@ -66,8 +67,8 @@ export default function CreateRoomForm() {
     };
 
     try {
-        const roomsCollection = collection(firestore, "rooms");
-        await addDocumentNonBlocking(roomsCollection, roomData);
+        const roomRef = doc(firestore, "rooms", newRoomId);
+        setDocumentNonBlocking(roomRef, roomData, { merge: false });
 
         toast({
             title: "Room Created!",
