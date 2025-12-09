@@ -24,10 +24,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { useRouter } from 'next/navigation';
 
 export default function PrivateChatPage({ params: { id } }: { params: { id: string } }) {
   const firestore = useFirestore();
   const { user } = useUser();
+  const router = useRouter();
 
   const chatRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'privateChats', id) : null),
@@ -62,43 +64,42 @@ export default function PrivateChatPage({ params: { id } }: { params: { id: stri
     const messageText = input.value.trim();
 
     if (messageText) {
+      const timestamp = serverTimestamp();
       const messageData = {
         id: uuidv4(),
         text: messageText,
         senderId: user.uid,
-        createdAt: serverTimestamp(),
+        createdAt: timestamp,
       };
       
       const lastMessageData = {
         text: messageText,
         senderId: user.uid,
-        createdAt: messageData.createdAt,
+        createdAt: timestamp,
       }
 
       const messagesCollection = collection(firestore, 'privateChats', id, 'messages');
-      await addDocumentNonBlocking(messagesCollection, messageData);
+      addDocumentNonBlocking(messagesCollection, messageData);
       
       const chatDocRef = doc(firestore, 'privateChats', id);
-      await updateDocumentNonBlocking(chatDocRef, { lastMessage: lastMessageData });
+      updateDocumentNonBlocking(chatDocRef, { lastMessage: lastMessageData });
 
       form.reset();
     }
   };
   
     if (isChatLoading) {
-        return <div className="flex items-center justify-center h-screen">Loading chat...</div>
+        return <div className="flex items-center justify-center h-screen bg-background text-white">Loading chat...</div>
     }
 
 
   return (
-    <div className="flex flex-col h-screen bg-[#0f0f0f]">
+    <div className="flex flex-col h-screen bg-background">
       <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur-sm">
         <div className="container mx-auto px-4">
-          <div className="flex justify-between items-center py-3">
-            <Button variant="ghost" size="icon" asChild>
-              <Link href="/inbox">
+          <div className="flex justify-between items-center py-3 text-white">
+            <Button variant="ghost" size="icon" onClick={() => router.back()} className="text-white hover:bg-white/20 hover:text-white">
                 <ArrowLeft />
-              </Link>
             </Button>
             {otherParticipant && (
                 <div className="flex items-center gap-3">
@@ -117,7 +118,7 @@ export default function PrivateChatPage({ params: { id } }: { params: { id: stri
       <main className="flex-grow flex flex-col container mx-auto px-4">
         <div className="flex-grow flex flex-col justify-end p-2 space-y-2 overflow-y-auto">
           {areMessagesLoading ? (
-            <p>Loading messages...</p>
+            <p className="text-center text-muted-foreground">Loading messages...</p>
           ) : (
             messages?.map(msg => (
               <div
@@ -130,7 +131,7 @@ export default function PrivateChatPage({ params: { id } }: { params: { id: stri
                   className={`max-w-[70%] p-3 rounded-2xl ${
                     msg.senderId === user?.uid
                       ? 'bg-primary text-primary-foreground rounded-br-none'
-                      : 'bg-[#2a2a2a] text-white rounded-bl-none'
+                      : 'bg-card text-card-foreground rounded-bl-none'
                   }`}
                 >
                   <p>{msg.text}</p>
@@ -141,7 +142,7 @@ export default function PrivateChatPage({ params: { id } }: { params: { id: stri
         </div>
       </main>
 
-      <footer className="sticky bottom-0 bg-[#111] border-t-0">
+      <footer className="sticky bottom-0 bg-background/95 backdrop-blur-sm border-t">
         <div className="container mx-auto p-3">
           <form
             className="flex items-center gap-2"
@@ -151,9 +152,9 @@ export default function PrivateChatPage({ params: { id } }: { params: { id: stri
               name="message"
               placeholder="Type a message..."
               autoComplete="off"
-              className="flex-1 bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0 text-white"
+              className="flex-1 bg-input border-none focus-visible:ring-0 focus-visible:ring-offset-0 text-white rounded-full"
             />
-            <Button type="submit" className="main-btn rounded-full">
+            <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-full px-6">
               Send
             </Button>
           </form>

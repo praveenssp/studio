@@ -1,4 +1,3 @@
-
 'use client';
 import { useMemo } from 'react';
 import Link from 'next/link';
@@ -42,18 +41,17 @@ export default function InboxPage() {
     <div className="flex flex-col min-h-screen bg-background text-white">
         <Header/>
         <main className="flex-1 container mx-auto px-4 py-8">
-             <div className="flex items-center justify-between mb-6">
-                <Button variant="ghost" size="icon" onClick={() => router.back()}>
+             <div className="flex items-center mb-6">
+                <Button variant="ghost" size="icon" onClick={() => router.back()} className="mr-4 text-white hover:bg-white/20 hover:text-white">
                     <ArrowLeft />
                 </Button>
                 <h1 className="text-3xl font-bold">Inbox</h1>
-                <div className="w-10"></div>
             </div>
 
             {isLoading && (
                  <div className="space-y-3">
                     {[...Array(3)].map((_, i) => (
-                        <div key={i} className="flex items-center gap-4 bg-[#1c1c1c] p-3 rounded-xl animate-pulse">
+                        <div key={i} className="flex items-center gap-4 bg-card p-3 rounded-xl animate-pulse">
                             <div className="h-12 w-12 rounded-full bg-muted"></div>
                             <div className="flex-1 space-y-2">
                                 <div className="h-4 bg-muted rounded w-3/4"></div>
@@ -71,7 +69,7 @@ export default function InboxPage() {
 
                         return (
                             <Link href={`/inbox/${chat.id}`} key={chat.id} className="block">
-                                <div className="flex items-center gap-3 bg-[#1c1c1c] p-3 rounded-xl hover:bg-card transition-colors">
+                                <div className="flex items-center gap-3 bg-card p-3 rounded-xl hover:bg-card/80 transition-colors">
                                     <Avatar className="h-12 w-12">
                                         <AvatarImage src={otherParticipant.profileImageUrl} />
                                         <AvatarFallback>{otherParticipant.username.charAt(0)}</AvatarFallback>
@@ -84,8 +82,8 @@ export default function InboxPage() {
                                         </p>
                                     </div>
                                     {chat.lastMessage?.createdAt && (
-                                         <span className="text-xs text-gray-500">
-                                             {formatDistanceToNow(chat.lastMessage.createdAt.toDate(), { addSuffix: true })}
+                                         <span className="text-xs text-gray-500 whitespace-nowrap">
+                                             {formatDistanceToNow(new Date(chat.lastMessage.createdAt.seconds * 1000), { addSuffix: true })}
                                          </span>
                                     )}
                                 </div>
@@ -101,7 +99,6 @@ export default function InboxPage() {
                     </div>
                 )
             )}
-
         </main>
     </div>
   );

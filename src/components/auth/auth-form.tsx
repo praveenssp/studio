@@ -73,6 +73,7 @@ export default function AuthForm() {
   async function onLoginSubmit(values: z.infer<typeof loginSchema>) {
     setIsSubmitting(true);
     try {
+      if (!auth) throw new Error("Auth service not available.");
       await signInWithEmailAndPassword(auth, values.email, values.password);
       toast({
         title: "Success!",
@@ -93,11 +94,11 @@ export default function AuthForm() {
   }
 
   async function onRegisterSubmit(values: z.infer<typeof registerSchema>) {
-    if (!firestore) {
+    if (!firestore || !auth) {
         toast({
             variant: "destructive",
             title: "Error",
-            description: "Firestore is not available.",
+            description: "A required service is not available.",
         });
         return;
     }
@@ -119,7 +120,7 @@ export default function AuthForm() {
             profileImageUrl: profileImageUrl
         }
         
-        await setDocumentNonBlocking(userProfileRef, userProfileData);
+        setDocumentNonBlocking(userProfileRef, userProfileData, { merge: true });
 
         toast({
           title: "Registration Successful!",
@@ -146,7 +147,7 @@ export default function AuthForm() {
   }
 
   return (
-    <Card className="bg-white text-black p-6 rounded-2xl text-center">
+    <Card className="bg-card text-card-foreground p-6 rounded-2xl text-center">
       <CardContent className="p-0">
         <h2 className="text-2xl font-bold">Easy Voice</h2>
         <p className="text-muted-foreground mb-6">Connect with voice rooms</p>
@@ -164,7 +165,7 @@ export default function AuthForm() {
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
-                        <Input className="bg-gray-100 border-none text-black placeholder:text-gray-500" placeholder="Email" {...field} />
+                        <Input className="bg-input border-none text-foreground placeholder:text-muted-foreground" placeholder="Email" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -176,7 +177,7 @@ export default function AuthForm() {
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
-                        <Input type="password" className="bg-gray-100 border-none text-black placeholder:text-gray-500" placeholder="Password" {...field} />
+                        <Input type="password" className="bg-input border-none text-foreground placeholder:text-muted-foreground" placeholder="Password" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -197,7 +198,7 @@ export default function AuthForm() {
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
-                        <Input className="bg-gray-100 border-none text-black placeholder:text-gray-500" placeholder="Username" {...field} />
+                        <Input className="bg-input border-none text-foreground placeholder:text-muted-foreground" placeholder="Username" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -209,7 +210,7 @@ export default function AuthForm() {
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
-                        <Input className="bg-gray-100 border-none text-black placeholder:text-gray-500" placeholder="Email" {...field} />
+                        <Input className="bg-input border-none text-foreground placeholder:text-muted-foreground" placeholder="Email" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -221,7 +222,7 @@ export default function AuthForm() {
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
-                        <Input type="password" className="bg-gray-100 border-none text-black placeholder:text-gray-500" placeholder="Password" {...field} />
+                        <Input type="password" className="bg-input border-none text-foreground placeholder:text-muted-foreground" placeholder="Password" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

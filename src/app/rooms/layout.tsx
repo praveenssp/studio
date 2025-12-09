@@ -22,16 +22,12 @@ export default function RoomsLayout({
   // While loading, you can show a loader or a blank screen
   if (isUserLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <p>Loading...</p>
+      <div className="flex items-center justify-center h-screen bg-background">
+        <p className="text-white">Loading...</p>
       </div>
     );
   }
 
   // If there's a user, render the layout with its children
-  return user ? (
-    <div className="flex flex-col min-h-screen bg-background text-white">
-      <main className="flex-1">{children}</main>
-    </div>
-  ) : null; // Or a fallback component if you prefer
+  return user ? <>{children}</> : null; // Or a fallback component if you prefer
 }

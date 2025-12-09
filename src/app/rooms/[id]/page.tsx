@@ -160,7 +160,7 @@ export default function ChatRoomPage({ params: { id } }: { params: { id: string 
                 createdAt: serverTimestamp(),
             };
             const chatDocRef = doc(firestore, 'privateChats', newChatId);
-            await setDocumentNonBlocking(chatDocRef, newChatData);
+            await setDocumentNonBlocking(chatDocRef, newChatData, { merge: true });
             router.push(`/inbox/${newChatId}`);
         }
     } catch (error) {
@@ -314,7 +314,7 @@ export default function ChatRoomPage({ params: { id } }: { params: { id: string 
                     Online: {allParticipants.length}
                   </button>
                 </SheetTrigger>
-                <SheetContent side="left">
+                <SheetContent side="left" className="bg-card border-none">
                   <SheetHeader>
                     <SheetTitle>Online Users</SheetTitle>
                     <SheetDescription>
@@ -402,11 +402,11 @@ export default function ChatRoomPage({ params: { id } }: { params: { id: string 
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <button className="relative">
-                                <Avatar className="h-16 w-16 border-2 border-yellow-400">
+                                <Avatar className="h-16 w-16 border-2 border-primary">
                                     <AvatarImage src={roomCreatorProfile?.profileImageUrl} />
                                     <AvatarFallback className="text-lg">{roomCreatorProfile?.username?.charAt(0)}</AvatarFallback>
                                 </Avatar>
-                                <Crown className="absolute -top-2 -right-2 h-6 w-6 text-yellow-400 transform rotate-[30deg]" fill="currentColor" />
+                                <Crown className="absolute -top-2 -right-2 h-6 w-6 text-primary transform rotate-[30deg]" fill="currentColor" />
                             </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
@@ -461,7 +461,7 @@ export default function ChatRoomPage({ params: { id } }: { params: { id: string 
 
         {/* Join Requests for Admin */}
         {isCreator && joinRequests.length > 0 && (
-            <Card>
+            <Card className="bg-card">
                 <CardHeader><CardTitle className="text-base text-white">Join Requests</CardTitle></CardHeader>
                 <CardContent className="space-y-3">
                     {joinRequests.map(req => (
@@ -485,10 +485,10 @@ export default function ChatRoomPage({ params: { id } }: { params: { id: string 
 
 
         <div className="flex-grow bg-card rounded-t-3xl p-4 flex flex-col">
-            <ScrollArea className="flex-grow">
+            <ScrollArea className="flex-grow pr-4 -mr-4">
                 <div className="space-y-4">
                 {areMessagesLoading ? (
-                <p className="text-muted-foreground">Loading messages...</p>
+                <p className="text-muted-foreground text-center">Loading messages...</p>
                 ) : (
                 messages && messages.length > 0 ? (
                     messages.map(msg => (
@@ -527,7 +527,7 @@ export default function ChatRoomPage({ params: { id } }: { params: { id: string 
                                     </DropdownMenuContent>
                                 )}
                             </DropdownMenu>
-                            <div className={`p-3 rounded-2xl max-w-[70%] ${msg.senderId === user?.uid ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-white rounded-bl-none'}`}>
+                            <div className={`p-3 rounded-2xl max-w-[70%] ${msg.senderId === user?.uid ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-muted text-card-foreground rounded-bl-none'}`}>
                                 <p className="font-bold text-sm">{msg.senderName}</p>
                                 <p className="text-sm">{msg.text}</p>
                             </div>
@@ -556,7 +556,7 @@ export default function ChatRoomPage({ params: { id } }: { params: { id: string 
                 name="message"
                 placeholder="Type message..."
                 autoComplete="off"
-                className="flex-1 bg-white rounded-full border-gray-300 focus-visible:ring-primary"
+                className="flex-1 bg-input rounded-full border-gray-300 focus-visible:ring-primary text-foreground"
                 />
                 <Button type="submit" className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground px-6">
                 Send
