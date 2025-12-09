@@ -16,11 +16,12 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { Camera } from "lucide-react";
+import { useUser, useAuth } from "@/firebase";
+import { updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
 
 const profileSchema = z.object({
-  name: z.string().min(1, { message: "Name is required." }),
+  displayName: z.string().min(1, { message: "Name is required." }),
   email: z.string().email(),
 });
 
@@ -31,13 +32,14 @@ const passwordSchema = z.object({
 
 export default function ProfileForm() {
   const { toast } = useToast();
-  const userAvatar = PlaceHolderImages.find((img) => img.id === "avatar1");
+  const { user } = useUser();
+  const auth = useAuth();
 
   const profileForm = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      name: "John Doe",
-      email: "john.doe@example.com",
+      displayName: user?.displayName || "",
+      email: user?.email || "",
     },
   });
 
@@ -49,22 +51,50 @@ export default function ProfileForm() {
     }
   })
 
-  function onProfileSubmit(values: z.infer<typeof profileSchema>) {
-    console.log("Profile updated", values);
-    toast({
-      title: "Profile Updated",
-      description: "Your information has been saved.",
-    });
+  async function onProfileSubmit(values: z.infer<typeof profileSchema>) {
+    if (!user) return;
+    try {
+        await updateProfile(user, { displayName: values.displayName });
+        toast({
+            title: "Profile Updated",
+            description: "Your information has been saved.",
+        });
+    } catch(error: any) {
+         toast({
+            variant: "destructive",
+            title: "Error",
+            description: error.message,
+        });
+    }
   }
 
-  function onPasswordSubmit(values: z.infer<typeof passwordSchema>) {
-    console.log("Password change requested", values);
-    toast({
-      title: "Password Updated",
-      description: "Your password has been successfully changed.",
-    });
-    passwordForm.reset();
+  async function onPasswordSubmit(values: z.infer<typeof passwordSchema>) {
+    if (!user || !user.email) return;
+
+    const credential = EmailAuthProvider.credential(user.email, values.currentPassword);
+    
+    try {
+        await reauthenticateWithCredential(user, credential);
+        await updatePassword(user, values.newPassword);
+        toast({
+          title: "Password Updated",
+          description: "Your password has been successfully changed.",
+        });
+        passwordForm.reset();
+    } catch(error: any) {
+        toast({
+            variant: "destructive",
+            title: "Error updating password",
+            description: error.message,
+        });
+    }
   }
+  
+  const getInitials = (name?: string | null) => {
+    if (!name) return "U";
+    return name.split(' ').map(n => n[0]).join('');
+  }
+
 
   return (
     <div className="space-y-8">
@@ -77,8 +107,8 @@ export default function ProfileForm() {
                 <div className="flex items-center space-x-4 mb-8">
                     <div className="relative">
                         <Avatar className="h-24 w-24">
-                        {userAvatar && <AvatarImage src={userAvatar.imageUrl} alt="User Avatar" />}
-                        <AvatarFallback>JD</AvatarFallback>
+                        {user?.photoURL && <AvatarImage src={user.photoURL} alt="User Avatar" />}
+                        <AvatarFallback>{getInitials(user?.displayName)}</AvatarFallback>
                         </Avatar>
                         <Button size="icon" className="absolute -bottom-2 -right-2 rounded-full h-8 w-8">
                             <Camera className="h-4 w-4"/>
@@ -86,15 +116,15 @@ export default function ProfileForm() {
                         </Button>
                     </div>
                     <div>
-                        <h2 className="text-xl font-bold">John Doe</h2>
-                        <p className="text-muted-foreground">john.doe@example.com</p>
+                        <h2 className="text-xl font-bold">{user?.displayName || 'User'}</h2>
+                        <p className="text-muted-foreground">{user?.email}</p>
                     </div>
                 </div>
                  <Form {...profileForm}>
                     <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-6">
                         <FormField
                         control={profileForm.control}
-                        name="name"
+                        name="displayName"
                         render={({ field }) => (
                             <FormItem>
                             <FormLabel>Name</FormLabel>

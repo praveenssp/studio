@@ -17,6 +17,11 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/firebase";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import { useEffect } from "react";
+import { useUser } from "@/firebase/provider";
+
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -24,7 +29,7 @@ const loginSchema = z.object({
 });
 
 const registerSchema = z.object({
-  name: z.string().min(1, { message: "Name is required." }),
+  username: z.string().min(1, { message: "Name is required." }),
   email: z.string().email({ message: "Invalid email address." }),
   password: z.string().min(8, { message: "Password must be at least 8 characters." }),
 });
@@ -32,6 +37,14 @@ const registerSchema = z.object({
 export default function AuthForm() {
   const router = useRouter();
   const { toast } = useToast();
+  const auth = useAuth();
+  const { user, isUserLoading } = useUser();
+
+  useEffect(() => {
+    if (user) {
+      router.push("/rooms");
+    }
+  }, [user, router]);
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -44,28 +57,53 @@ export default function AuthForm() {
   const registerForm = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      name: "",
+      username: "",
       email: "",
       password: "",
     },
   });
 
-  function onLoginSubmit(values: z.infer<typeof loginSchema>) {
-    console.log("Login submitted", values);
-    toast({
-      title: "Login Successful",
-      description: "Redirecting to your rooms...",
-    });
-    router.push("/rooms");
+  async function onLoginSubmit(values: z.infer<typeof loginSchema>) {
+    try {
+      await signInWithEmailAndPassword(auth, values.email, values.password);
+      toast({
+        title: "Login Successful",
+        description: "Redirecting to your rooms...",
+      });
+      router.push("/rooms");
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Login Failed",
+        description: error.message,
+      });
+    }
   }
 
-  function onRegisterSubmit(values: z.infer<typeof registerSchema>) {
-    console.log("Register submitted", values);
-    toast({
-      title: "Registration Almost Complete",
-      description: "Please check your email for a verification code.",
-    });
-    router.push("/otp");
+  async function onRegisterSubmit(values: z.infer<typeof registerSchema>) {
+    try {
+      await createUserWithEmailAndPassword(auth, values.email, values.password);
+      // Here you would typically also create a user profile in Firestore
+      toast({
+        title: "Registration Successful",
+        description: "Redirecting to the rooms...",
+      });
+      router.push("/rooms");
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Registration Failed",
+        description: error.message,
+      });
+    }
+  }
+  
+  if (isUserLoading || user) {
+    return (
+      <div className="flex justify-center items-center min-h-[300px]">
+        <p>Loading...</p>
+      </div>
+    );
   }
 
   return (
@@ -109,8 +147,8 @@ export default function AuthForm() {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="w-full">
-                  Login
+                <Button type="submit" className="w-full" disabled={loginForm.formState.isSubmitting}>
+                  {loginForm.formState.isSubmitting ? 'Logging in...' : 'Login'}
                 </Button>
               </form>
             </Form>
@@ -128,12 +166,12 @@ export default function AuthForm() {
               <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-6">
                 <FormField
                   control={registerForm.control}
-                  name="name"
+                  name="username"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Name</FormLabel>
+                      <FormLabel>Username</FormLabel>
                       <FormControl>
-                        <Input placeholder="Your Name" {...field} />
+                        <Input placeholder="Your Username" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -165,8 +203,8 @@ export default function AuthForm() {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="w-full">
-                  Register
+                <Button type="submit" className="w-full" disabled={registerForm.formState.isSubmitting}>
+                   {registerForm.formState.isSubmitting ? 'Registering...' : 'Register'}
                 </Button>
               </form>
             </Form>
