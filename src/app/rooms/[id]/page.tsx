@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { ArrowLeft, Send, Crown, Trash2, CheckCheck, MoreVertical, RefreshCw, Eraser, UserPlus } from 'lucide-react';
+import { ArrowLeft, Send, Crown, Trash2, CheckCheck, MoreVertical, RefreshCw, Eraser, UserPlus, User, MessageSquare, XCircle, Ban, Check, X } from 'lucide-react';
 import {
   useCollection,
   useDoc,
@@ -25,7 +25,8 @@ import {
   deleteDoc,
 } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { useRouter } from 'next/navigation';
+
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -47,11 +48,11 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-// Mock data for participants
-const mockParticipants = [
+
+const mockUsers = [
   { id: 'user-1', username: 'Alex', profileImageUrl: 'https://picsum.photos/seed/a/100' },
   { id: 'user-2', username: 'Maria', profileImageUrl: 'https://picsum.photos/seed/b/100' },
   { id: 'user-3', username: 'David', profileImageUrl: 'https://picsum.photos/seed/c/100' },
@@ -67,7 +68,11 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
   const { user } = useUser();
   const [isClearAlertOpen, setIsClearAlertOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
-  const [participants, setParticipants] = useState(mockParticipants.slice(0, 4));
+  
+  // State for participants and join requests
+  const [participants, setParticipants] = useState(mockUsers.slice(0, 1)); // Start with one participant
+  const [joinRequests, setJoinRequests] = useState(mockUsers.slice(1, 3)); // Two users requesting to join
+  const availableUsers = mockUsers.filter(u => ![...participants.map(p => p.id), ...joinRequests.map(r => r.id)].includes(u.id));
 
 
   const roomRef = useMemoFirebase(
@@ -86,12 +91,13 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
         : null,
     [firestore, id]
   );
-  const { data: messages, isLoading: areMessagesLoading, error: messagesError } =
-    useCollection<ChatMessage>(messagesQuery);
+  const { data: messages, isLoading: areMessagesLoading } = useCollection<ChatMessage>(messagesQuery);
     
   const { data: roomCreatorProfile } = useDoc<UserProfile>(
       useMemoFirebase(() => (firestore && room?.creatorId ? doc(firestore, 'users', room.creatorId) : null) ,[firestore, room])
   );
+
+  const isCreator = user?.uid === room?.creatorId;
 
   const handleSendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -109,20 +115,13 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
         senderName: user.displayName || 'Anonymous',
         createdAt: serverTimestamp(),
       };
-      const messagesCollection = collection(
-        firestore,
-        'rooms',
-        id,
-        'messages'
-      );
+      const messagesCollection = collection(firestore, 'rooms', id, 'messages');
       addDocumentNonBlocking(messagesCollection, messageData);
       form.reset();
     }
   };
 
-  const handleRefresh = () => {
-    window.location.reload();
-  };
+  const handleRefresh = () => window.location.reload();
 
   const handleClearMessages = async () => {
     if (!firestore || !messagesQuery) return;
@@ -130,52 +129,61 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
     try {
         const querySnapshot = await getDocs(messagesQuery);
         const batch = writeBatch(firestore);
-        querySnapshot.forEach(doc => {
-            batch.delete(doc.ref);
-        });
+        querySnapshot.forEach(doc => batch.delete(doc.ref));
         await batch.commit();
         toast({ title: "Messages cleared." });
     } catch (error) {
         console.error("Error clearing messages: ", error);
-        toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Could not clear messages.",
-        });
+        toast({ variant: "destructive", title: "Error", description: "Could not clear messages." });
     }
   };
 
   const handleDeleteRoom = async () => {
     if (!firestore || !roomRef) return;
     setIsDeleteAlertOpen(false);
-
     try {
-      // First, delete all messages in the subcollection
       if (messagesQuery) {
         const messagesSnapshot = await getDocs(messagesQuery);
         const batch = writeBatch(firestore);
-        messagesSnapshot.forEach((doc) => {
-          batch.delete(doc.ref);
-        });
+        messagesSnapshot.forEach((doc) => batch.delete(doc.ref));
         await batch.commit();
       }
-
-      // Then, delete the room document itself
       await deleteDoc(roomRef);
-
       toast({ title: `Room "${room?.name}" deleted.` });
       router.push('/rooms');
     } catch (error) {
       console.error("Error deleting room: ", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Could not delete the room.",
-      });
+      toast({ variant: "destructive", title: "Error", description: "Could not delete the room." });
     }
   };
   
-  const isCreator = user?.uid === room?.creatorId;
+  const handleRequestToJoin = () => {
+    if (availableUsers.length > 0) {
+      const newUser = availableUsers[0];
+      setJoinRequests([...joinRequests, newUser]);
+      toast({ title: `${newUser.username} requested to join.`})
+    }
+  };
+
+  const handleAcceptRequest = (requestingUser: typeof mockUsers[0]) => {
+    if (participants.length < 5) {
+      setParticipants([...participants, requestingUser]);
+      setJoinRequests(joinRequests.filter(r => r.id !== requestingUser.id));
+      toast({ title: `Accepted ${requestingUser.username}.`})
+    } else {
+      toast({ variant: 'destructive', title: "Room is full."})
+    }
+  };
+  
+  const handleDeclineRequest = (requestingUser: typeof mockUsers[0]) => {
+    setJoinRequests(joinRequests.filter(r => r.id !== requestingUser.id));
+    toast({ title: `Declined ${requestingUser.username}.`})
+  }
+
+  const handleRemoveParticipant = (participantId: string) => {
+    setParticipants(participants.filter(p => p.id !== participantId));
+    toast({ title: `Removed user from seat.`})
+  }
 
   if (isRoomLoading) {
     return (
@@ -184,9 +192,6 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
       </div>
     );
   }
-  
-  const emptySeatImage = PlaceHolderImages.find(img => img.id === 'empty-seat');
-
 
   return (
     <>
@@ -229,41 +234,83 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
       </header>
 
       <main className="flex-grow flex flex-col container mx-auto px-4 py-4 gap-4 overflow-hidden">
-        <div className="flex flex-col items-center text-black">
-          <div className="relative">
-            <Avatar className="h-24 w-24 border-4 border-white ring-4 ring-yellow-400">
-                <AvatarImage src={roomCreatorProfile?.profileImageUrl} />
-                <AvatarFallback className="text-3xl">
-                    {roomCreatorProfile?.username?.charAt(0)}
-                </AvatarFallback>
-            </Avatar>
-            <Crown className="absolute -top-3 -right-3 h-8 w-8 text-yellow-400 transform rotate-[30deg]" fill="currentColor" />
-             <div className="absolute bottom-1 right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+        <div className="grid grid-cols-5 gap-3">
+          {/* Admin Seat */}
+          <div className="flex flex-col items-center gap-1">
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <button className="relative">
+                        <Avatar className="h-16 w-16 border-2 border-yellow-400">
+                            <AvatarImage src={roomCreatorProfile?.profileImageUrl} />
+                            <AvatarFallback className="text-lg">{roomCreatorProfile?.username?.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <Crown className="absolute -top-2 -right-2 h-6 w-6 text-yellow-400 transform rotate-[30deg]" fill="currentColor" />
+                    </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                    <DropdownMenuItem>
+                        <User className="mr-2 h-4 w-4" /> View Profile
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+            <p className="text-xs text-black font-medium">{roomCreatorProfile?.username || 'Admin'}</p>
           </div>
-          <p className="font-semibold mt-2">{roomCreatorProfile?.username || 'Admin'}</p>
-        </div>
-
-        <div className="grid grid-cols-4 gap-3">
-          {participants.map(p => (
-            <div key={p.id} className="flex flex-col items-center gap-1">
-              <Avatar className="h-16 w-16">
-                <AvatarImage src={p.profileImageUrl} />
-                <AvatarFallback>{p.username.charAt(0)}</AvatarFallback>
-              </Avatar>
-              <p className="text-xs text-black font-medium">{p.username}</p>
+          
+          {/* Participant Seats */}
+          {participants.slice(1).map(p => (
+             <div key={p.id} className="flex flex-col items-center gap-1">
+                 <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <button><Avatar className="h-16 w-16"><AvatarImage src={p.profileImageUrl} /><AvatarFallback>{p.username.charAt(0)}</AvatarFallback></Avatar></button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                        <DropdownMenuItem><User className="mr-2 h-4 w-4" /> View Profile</DropdownMenuItem>
+                        <DropdownMenuItem><UserPlus className="mr-2 h-4 w-4" /> Follow</DropdownMenuItem>
+                        <DropdownMenuItem><MessageSquare className="mr-2 h-4 w-4" /> Message</DropdownMenuItem>
+                        {isCreator && <DropdownMenuSeparator />}
+                        {isCreator && <DropdownMenuItem className="text-destructive" onClick={() => handleRemoveParticipant(p.id)}><XCircle className="mr-2 h-4 w-4" /> Kick from seat</DropdownMenuItem>}
+                        {isCreator && <DropdownMenuItem className="text-destructive" onClick={() => toast({title: "User blocked"})}><Ban className="mr-2 h-4 w-4" /> Block User</DropdownMenuItem>}
+                    </DropdownMenuContent>
+                 </DropdownMenu>
+                <p className="text-xs text-black font-medium">{p.username}</p>
             </div>
           ))}
-          {[...Array(4 - participants.length)].map((_, index) => (
-            <div key={index} className="flex flex-col items-center gap-1">
-                 <Avatar className="h-16 w-16 border-2 border-dashed border-gray-400 bg-black/10 flex items-center justify-center">
-                    <AvatarFallback className="bg-transparent">
-                        <UserPlus className="text-gray-400" />
-                    </AvatarFallback>
-                </Avatar>
+
+          {/* Empty Seats */}
+          {[...Array(Math.max(0, 4 - (participants.length -1)))].map((_, index) => (
+            <div key={`empty-${index}`} className="flex flex-col items-center gap-1">
+                 <Button variant="ghost" className="h-16 w-16 rounded-full border-2 border-dashed border-gray-400 bg-black/10 flex items-center justify-center p-0" onClick={handleRequestToJoin}>
+                    <UserPlus className="text-gray-400 h-6 w-6" />
+                 </Button>
                 <p className="text-xs text-black font-medium">Empty</p>
             </div>
           ))}
         </div>
+
+        {/* Join Requests for Admin */}
+        {isCreator && joinRequests.length > 0 && (
+            <Card>
+                <CardHeader><CardTitle className="text-base">Join Requests</CardTitle></CardHeader>
+                <CardContent className="space-y-3">
+                    {joinRequests.map(req => (
+                        <div key={req.id} className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <Avatar className="h-8 w-8">
+                                    <AvatarImage src={req.profileImageUrl} />
+                                    <AvatarFallback>{req.username.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <span className="text-sm font-medium">{req.username}</span>
+                            </div>
+                            <div className="flex gap-2">
+                                <Button size="icon" className="h-8 w-8 bg-green-500 hover:bg-green-600" onClick={() => handleAcceptRequest(req)}><Check className="h-4 w-4" /></Button>
+                                <Button size="icon" variant="destructive" className="h-8 w-8" onClick={() => handleDeclineRequest(req)}><X className="h-4 w-4" /></Button>
+                            </div>
+                        </div>
+                    ))}
+                </CardContent>
+            </Card>
+        )}
+
 
         <div className="flex-grow bg-card rounded-t-3xl p-4 flex flex-col">
             <ScrollArea className="flex-grow">
@@ -298,9 +345,6 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
                     </div>
                 )
                 )}
-                <div className="flex items-center gap-2">
-                    <p className="text-sm text-muted-foreground italic">Admin is typing...</p>
-                </div>
                 </div>
             </ScrollArea>
         
@@ -363,7 +407,5 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
     </>
   );
 }
-
-    
 
     
