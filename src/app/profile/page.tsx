@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useUser } from '@/firebase';
 import ProfileForm from "@/components/profile/profile-form";
 import { Button } from '@/components/ui/button';
-import { Inbox } from 'lucide-react';
+import { Inbox, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ProfilePage() {
@@ -29,6 +29,9 @@ export default function ProfilePage() {
   return (
     <div className="container mx-auto max-w-2xl py-8">
         <div className="flex justify-between items-center mb-6">
+            <Button variant="ghost" size="icon" onClick={() => router.back()}>
+                <ArrowLeft />
+            </Button>
             <h1 className="text-3xl font-bold">My Profile</h1>
             <Button asChild>
                 <Link href="/inbox">

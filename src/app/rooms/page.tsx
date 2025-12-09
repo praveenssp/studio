@@ -6,9 +6,13 @@ import { collection, query, orderBy } from 'firebase/firestore';
 import { useMemoFirebase } from '@/firebase/provider';
 import type { Room } from '@/lib/types';
 import { PlaceHolderImages } from "@/lib/placeholder-images";
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
 
 export default function RoomsPage() {
   const firestore = useFirestore();
+  const router = useRouter();
 
   const roomsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -44,6 +48,10 @@ export default function RoomsPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
+       <Button variant="ghost" onClick={() => router.back()} className="mb-4">
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Back
+      </Button>
       {rooms && rooms.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {rooms.map((room, index) => (

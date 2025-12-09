@@ -2,6 +2,7 @@
 'use client';
 import { useMemo } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useCollection, useFirestore, useUser } from '@/firebase';
 import type { PrivateChat } from '@/lib/types';
 import { collection, query, where, orderBy } from 'firebase/firestore';
@@ -15,6 +16,7 @@ import Header from '@/components/shared/header';
 export default function InboxPage() {
   const firestore = useFirestore();
   const { user } = useUser();
+  const router = useRouter();
 
   const chatsQuery = useMemoFirebase(
     () =>
@@ -41,7 +43,11 @@ export default function InboxPage() {
         <Header/>
         <main className="flex-1 container mx-auto px-4 py-8">
              <div className="flex items-center justify-between mb-6">
+                <Button variant="ghost" size="icon" onClick={() => router.back()}>
+                    <ArrowLeft />
+                </Button>
                 <h1 className="text-3xl font-bold">Inbox</h1>
+                <div className="w-10"></div>
             </div>
 
             {isLoading && (
