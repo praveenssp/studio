@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,11 +16,15 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/firebase";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
-import { useEffect } from "react";
+import { useAuth, addDocumentNonBlocking } from "@/firebase";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { useEffect, useState } from "react";
 import { useUser } from "@/firebase/provider";
 import { Card, CardContent } from "../ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { collection, doc, setDoc } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
+import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 
 const loginSchema = z.object({
@@ -37,6 +42,7 @@ export default function AuthForm() {
   const router = useRouter();
   const { toast } = useToast();
   const auth = useAuth();
+  const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
 
   useEffect(() => {
@@ -80,9 +86,28 @@ export default function AuthForm() {
   }
 
   async function onRegisterSubmit(values: z.infer<typeof registerSchema>) {
+    if (!firestore) {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Firestore is not available.",
+        });
+        return;
+    }
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-      // Here you would typically also create a user profile in Firestore
+      await updateProfile(userCredential.user, { displayName: values.username });
+      
+      const userProfileRef = doc(firestore, 'users', userCredential.user.uid);
+      const userProfileData = {
+          id: userCredential.user.uid,
+          username: values.username,
+          email: values.email,
+          profileImageUrl: userCredential.user.photoURL || ""
+      }
+      
+      setDocumentNonBlocking(userProfileRef, userProfileData, { merge: true });
+
       toast({
         title: "Registration Successful",
         description: "Redirecting to the rooms...",
@@ -100,7 +125,7 @@ export default function AuthForm() {
   if (isUserLoading || user) {
     return (
       <div className="flex justify-center items-center min-h-[300px]">
-        <p>Loading...</p>
+        <p className="text-white">Loading...</p>
       </div>
     );
   }
@@ -110,29 +135,90 @@ export default function AuthForm() {
       <CardContent className="p-0">
         <h2 className="text-2xl font-bold">Easy Voice</h2>
         <p className="text-muted-foreground mb-6">Connect with voice rooms</p>
-        <Form {...loginForm}>
-          <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
-            <FormField
-              control={loginForm.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <Input className="bg-gray-100 border-none text-black placeholder:text-gray-500" placeholder="Phone number or email" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" className="w-full rounded-full" disabled={loginForm.formState.isSubmitting}>
-              {loginForm.formState.isSubmitting ? 'Continuing...' : 'Continue'}
-            </Button>
-          </form>
-        </Form>
-        <div className="my-4 font-bold text-gray-500">OR</div>
-        <Button variant="outline" className="w-full rounded-full bg-[#4285f4] text-white hover:bg-[#4285f4]/90 hover:text-white">
-          Continue with Email
-        </Button>
+        <Tabs defaultValue="signin" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="signin">Sign In</TabsTrigger>
+            <TabsTrigger value="signup">Sign Up</TabsTrigger>
+          </TabsList>
+          <TabsContent value="signin">
+            <Form {...loginForm}>
+              <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4 pt-4">
+                <FormField
+                  control={loginForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Input className="bg-gray-100 border-none text-black placeholder:text-gray-500" placeholder="Email" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={loginForm.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Input type="password" className="bg-gray-100 border-none text-black placeholder:text-gray-500" placeholder="Password" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full rounded-full" disabled={loginForm.formState.isSubmitting}>
+                  {loginForm.formState.isSubmitting ? 'Signing In...' : 'Sign In'}
+                </Button>
+              </form>
+            </Form>
+          </TabsContent>
+          <TabsContent value="signup">
+            <Form {...registerForm}>
+              <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4 pt-4">
+                <FormField
+                  control={registerForm.control}
+                  name="username"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Input className="bg-gray-100 border-none text-black placeholder:text-gray-500" placeholder="Username" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={registerForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Input className="bg-gray-100 border-none text-black placeholder:text-gray-500" placeholder="Email" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={registerForm.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Input type="password" className="bg-gray-100 border-none text-black placeholder:text-gray-500" placeholder="Password" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full rounded-full" disabled={registerForm.formState.isSubmitting}>
+                  {registerForm.formState.isSubmitting ? 'Signing Up...' : 'Sign Up'}
+                </Button>
+              </form>
+            </Form>
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );
