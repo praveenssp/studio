@@ -72,7 +72,8 @@ const mockUsers = [
   { id: 'user-5', username: 'Kenji', profileImageUrl: 'https://picsum.photos/seed/e/100' },
 ];
 
-export default function ChatRoomPage({ params: { id } }: { params: { id: string } }) {
+export default function ChatRoomPage({ params }: { params: { id: string } }) {
+  const { id } = params;
   const router = useRouter();
   const { toast } = useToast();
   const firestore = useFirestore();
