@@ -59,6 +59,12 @@
       "description": "A third abstract background for a chat room",
       "imageUrl": "https://images.unsplash.com/photo-1610571098334-9110b5ae0fd9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxhYnN0cmFjdCUyMG5hdHVyZXxlbnwwfHx8fDE3NjUyMzM1MTF8MA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "abstract nature"
+    },
+    {
+      "id": "empty-seat",
+      "description": "An empty seat in a chat room",
+      "imageUrl": "https://placehold.co/128x128/e0e0e0/e0e0e0.png",
+      "imageHint": "empty seat"
     }
   ]
 }

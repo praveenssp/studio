@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { ArrowLeft, Send, Crown, Trash2, CheckCheck, MoreVertical, RefreshCw, Eraser } from 'lucide-react';
+import { ArrowLeft, Send, Crown, Trash2, CheckCheck, MoreVertical, RefreshCw, Eraser, UserPlus } from 'lucide-react';
 import {
   useCollection,
   useDoc,
@@ -49,40 +49,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-
-const initialParticipants = [
-  {
-    id: '1',
-    name: 'Admin',
-    avatar: PlaceHolderImages.find(img => img.id === 'avatar1'),
-    isAdmin: true,
-  },
-  {
-    id: '2',
-    name: 'Arun',
-    avatar: PlaceHolderImages.find(img => img.id === 'avatar2'),
-    isAdmin: false,
-  },
-  {
-    id: '3',
-    name: 'Kavi',
-    avatar: PlaceHolderImages.find(img => img.id === 'avatar3'),
-    isAdmin: false,
-  },
-  {
-    id: '4',
-    name: 'Raja',
-    avatar: PlaceHolderImages.find(img => img.id === 'avatar4'),
-    isAdmin: false,
-  },
-  {
-    id: '5',
-    name: 'Selvi',
-    avatar: PlaceHolderImages.find(img => img.id === 'avatar5'),
-    isAdmin: false,
-  },
-];
-
 
 export default function ChatRoomPage({ params }: { params: { id: string } }) {
   const { id } = params;
@@ -208,6 +174,9 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
       </div>
     );
   }
+  
+  const emptySeatImage = PlaceHolderImages.find(img => img.id === 'empty-seat');
+
 
   return (
     <>
@@ -261,16 +230,19 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
             <Crown className="absolute -top-3 -right-3 h-8 w-8 text-yellow-400 transform rotate-[30deg]" fill="currentColor" />
              <div className="absolute bottom-1 right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
           </div>
+          <p className="font-semibold mt-2">{roomCreatorProfile?.username || 'Admin'}</p>
         </div>
 
-        <div className="flex justify-center items-center gap-3">
-          {initialParticipants.map(p => (
-            <div key={p.id} className="flex flex-col items-center gap-1">
-                 <Avatar className="h-12 w-12 border-2 border-white">
-                    <AvatarImage src={p.avatar?.imageUrl} alt={p.name} />
-                    <AvatarFallback>{p.name.charAt(0)}</AvatarFallback>
+        <div className="grid grid-cols-4 gap-3">
+          {[...Array(4)].map((_, index) => (
+            <div key={index} className="flex flex-col items-center gap-1">
+                 <Avatar className="h-16 w-16 border-2 border-dashed border-gray-400 bg-black/10">
+                    <AvatarImage src={emptySeatImage?.imageUrl} alt="Empty seat" />
+                    <AvatarFallback>
+                        <UserPlus className="text-gray-400" />
+                    </AvatarFallback>
                 </Avatar>
-                <p className="text-xs text-black font-medium">{p.name}</p>
+                <p className="text-xs text-black font-medium">Empty</p>
             </div>
           ))}
         </div>
