@@ -31,9 +31,9 @@ export default function RoomsLayout({
 
   // If there's a user, render the layout with its children
   return user ? (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-background text-white">
       <Header />
-      <main className="flex-1 bg-background">{children}</main>
+      <main className="flex-1">{children}</main>
     </div>
   ) : null; // Or a fallback component if you prefer
 }

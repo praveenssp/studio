@@ -3,11 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  MessageCircle,
   PlusCircle,
-  User,
   LogOut,
-  LayoutGrid,
+  User,
+  Settings
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,31 +37,20 @@ export default function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-card/80 backdrop-blur-sm">
-      <div className="container flex h-16 items-center">
-        <Link href="/rooms" className="flex items-center gap-2 mr-6">
-          <MessageCircle className="h-6 w-6 text-primary" />
-          <span className="font-bold hidden sm:inline-block">Whisper Rooms</span>
-        </Link>
-        <div className="flex flex-1 items-center justify-end space-x-2">
-          <nav className="hidden md:flex items-center space-x-2">
-            <Button variant="ghost" asChild>
-              <Link href="/rooms">
-                <LayoutGrid className="mr-2 h-4 w-4" />
-                Rooms
-              </Link>
-            </Button>
-            <Button asChild>
-              <Link href="/rooms/create">
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Create Room
-              </Link>
-            </Button>
-          </nav>
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur-sm">
+      <div className="container flex h-16 items-center justify-between">
+        <h3 className="text-2xl font-bold">Rooms</h3>
+        <div className="flex items-center space-x-2">
+          <Button asChild>
+            <Link href="/rooms/create">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Create Room
+            </Link>
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                <Avatar className="h-8 w-8">
+              <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                <Avatar className="h-10 w-10">
                   {user?.photoURL && <AvatarImage src={user.photoURL} alt={user.displayName || "User Avatar"} />}
                   <AvatarFallback>{getInitials(user?.displayName)}</AvatarFallback>
                 </Avatar>
@@ -82,16 +70,11 @@ export default function Header() {
                 <User className="mr-2 h-4 w-4" />
                 <span>Profile</span>
               </DropdownMenuItem>
+               <DropdownMenuItem onClick={() => router.push("/profile")}>
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Settings</span>
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
-               <DropdownMenuItem className="md:hidden" onClick={() => router.push("/rooms/create")}>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                <span>Create Room</span>
-              </DropdownMenuItem>
-               <DropdownMenuItem className="md:hidden" onClick={() => router.push("/rooms")}>
-                <LayoutGrid className="mr-2 h-4 w-4" />
-                <span>Rooms</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator className="md:hidden" />
               <DropdownMenuItem onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Log out</span>

@@ -28,40 +28,39 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const participants = [
   {
-    name: 'Alice',
+    name: 'Admin',
     avatar: PlaceHolderImages.find(img => img.id === 'avatar1'),
     isMuted: false,
     isSpeaking: true,
+    isAdmin: true,
   },
   {
-    name: 'Bob',
+    name: 'User 1',
     avatar: PlaceHolderImages.find(img => img.id === 'avatar2'),
     isMuted: false,
     isSpeaking: false,
+    isAdmin: false,
   },
   {
-    name: 'Charlie',
+    name: 'User 2',
     avatar: PlaceHolderImages.find(img => img.id === 'avatar3'),
     isMuted: true,
     isSpeaking: false,
+    isAdmin: false,
   },
   {
-    name: 'David',
+    name: 'User 3',
     avatar: PlaceHolderImages.find(img => img.id === 'avatar4'),
     isMuted: false,
     isSpeaking: false,
+    isAdmin: false,
   },
   {
-    name: 'Eve',
+    name: 'User 4',
     avatar: PlaceHolderImages.find(img => img.id === 'avatar5'),
     isMuted: false,
     isSpeaking: false,
-  },
-  {
-    name: 'Frank',
-    avatar: PlaceHolderImages.find(img => img.id === 'avatar6'),
-    isMuted: true,
-    isSpeaking: false,
+    isAdmin: false,
   },
 ];
 
@@ -125,45 +124,42 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)]">
-      <div className="container mx-auto px-4 py-6 flex-grow flex flex-col gap-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <Button variant="ghost" asChild className="-ml-4">
-              <Link href="/rooms">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Rooms
-              </Link>
+        <div className='container mx-auto px-4'>
+            <div className="flex justify-between items-center py-4">
+            <Button variant="ghost" asChild>
+                <Link href="/rooms">
+                <ArrowLeft />
+                </Link>
             </Button>
-            <h1 className="text-3xl font-bold">{room?.name || 'Room'}</h1>
-          </div>
-          <div className="flex items-center text-lg text-muted-foreground gap-2">
-            <Users className="h-6 w-6" />
-            <span>{participants.length} Participants</span>
-          </div>
+            <h1 className="text-xl font-bold">{room?.name || 'Room'}</h1>
+            <Button variant="ghost">⋮</Button>
+            </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+        <div className="container mx-auto px-4 flex-grow flex flex-col gap-4">
+        
+        <div className="grid grid-cols-3 gap-2.5 p-2.5">
           {participants.map((p, index) => (
             <ParticipantCard key={index} participant={p} />
           ))}
         </div>
 
-        <div className="flex-grow flex flex-col justify-end bg-muted/20 rounded-lg p-4 mt-4">
-          <div className="space-y-2 overflow-y-auto">
+        <div className="flex-grow flex flex-col justify-end bg-transparent rounded-lg p-2.5">
+          <div className="space-y-2 overflow-y-auto h-full">
             {areMessagesLoading ? (
               <p>Loading messages...</p>
             ) : (
               messages?.map(msg => (
                 <div key={msg.id}>
-                  <b>{msg.senderName}:</b> {msg.text}
+                  <b>{msg.senderName}:</b> {msg.text} 🔊
                 </div>
               ))
             )}
           </div>
         </div>
       </div>
-      <footer className="bg-card/80 border-t backdrop-blur-sm sticky bottom-0">
-        <div className="container mx-auto px-4 py-3 flex items-center gap-4">
+      <footer className="bg-[#111] sticky bottom-0">
+        <div className="container mx-auto p-3 flex items-center gap-2">
           <form
             className="flex-grow flex items-center gap-2"
             onSubmit={handleSendMessage}
@@ -172,12 +168,12 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
               name="message"
               placeholder="Type a message..."
               autoComplete="off"
+               className="flex-1 p-3 border-none bg-transparent"
             />
-            <Button type="submit" size="icon">
-              <Send />
+            <Button type="submit">
+              Send
             </Button>
           </form>
-          <ChatControls />
         </div>
       </footer>
     </div>

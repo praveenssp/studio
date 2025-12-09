@@ -14,13 +14,12 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { useEffect } from "react";
 import { useUser } from "@/firebase/provider";
+import { Card, CardContent } from "../ui/card";
 
 
 const loginSchema = z.object({
@@ -82,7 +81,7 @@ export default function AuthForm() {
 
   async function onRegisterSubmit(values: z.infer<typeof registerSchema>) {
     try {
-      await createUserWithEmailAndPassword(auth, values.email, values.password);
+      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       // Here you would typically also create a user profile in Firestore
       toast({
         title: "Registration Successful",
@@ -107,110 +106,34 @@ export default function AuthForm() {
   }
 
   return (
-    <Tabs defaultValue="login" className="w-full">
-      <TabsList className="grid w-full grid-cols-2">
-        <TabsTrigger value="login">Login</TabsTrigger>
-        <TabsTrigger value="register">Register</TabsTrigger>
-      </TabsList>
-      <TabsContent value="login">
-        <Card>
-          <CardHeader>
-            <CardTitle>Welcome Back</CardTitle>
-            <CardDescription>Sign in to access your chat rooms.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Form {...loginForm}>
-              <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-6">
-                <FormField
-                  control={loginForm.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input placeholder="you@example.com" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={loginForm.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <FormControl>
-                        <Input type="password" placeholder="••••••••" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Button type="submit" className="w-full" disabled={loginForm.formState.isSubmitting}>
-                  {loginForm.formState.isSubmitting ? 'Logging in...' : 'Login'}
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
-      </TabsContent>
-      <TabsContent value="register">
-        <Card>
-          <CardHeader>
-            <CardTitle>Create an Account</CardTitle>
-            <CardDescription>Join the conversation in one step.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Form {...registerForm}>
-              <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-6">
-                <FormField
-                  control={registerForm.control}
-                  name="username"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Username</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Your Username" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={registerForm.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input placeholder="you@example.com" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={registerForm.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <FormControl>
-                        <Input type="password" placeholder="••••••••" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Button type="submit" className="w-full" disabled={registerForm.formState.isSubmitting}>
-                   {registerForm.formState.isSubmitting ? 'Registering...' : 'Register'}
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
-      </TabsContent>
-    </Tabs>
+    <Card className="bg-white text-black p-6 rounded-2xl text-center">
+      <CardContent className="p-0">
+        <h2 className="text-2xl font-bold">Easy Voice</h2>
+        <p className="text-muted-foreground mb-6">Connect with voice rooms</p>
+        <Form {...loginForm}>
+          <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
+            <FormField
+              control={loginForm.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <Input className="bg-gray-100 border-none text-black placeholder:text-gray-500" placeholder="Phone number or email" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button type="submit" className="w-full rounded-full" disabled={loginForm.formState.isSubmitting}>
+              {loginForm.formState.isSubmitting ? 'Continuing...' : 'Continue'}
+            </Button>
+          </form>
+        </Form>
+        <div className="my-4 font-bold text-gray-500">OR</div>
+        <Button variant="outline" className="w-full rounded-full bg-[#4285f4] text-white hover:bg-[#4285f4]/90 hover:text-white">
+          Continue with Email
+        </Button>
+      </CardContent>
+    </Card>
   );
 }

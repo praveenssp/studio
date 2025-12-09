@@ -1,14 +1,13 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardContent } from "@/components/ui/card";
-import { Mic, MicOff } from "lucide-react";
-import type { ImagePlaceholder } from "@/lib/placeholder-images";
 import { cn } from "@/lib/utils";
+import type { ImagePlaceholder } from "@/lib/placeholder-images";
 
 type Participant = {
   name: string;
   avatar?: ImagePlaceholder;
   isMuted: boolean;
   isSpeaking: boolean;
+  isAdmin?: boolean;
 };
 
 type ParticipantCardProps = {
@@ -17,32 +16,21 @@ type ParticipantCardProps = {
 
 export default function ParticipantCard({ participant }: ParticipantCardProps) {
   return (
-    <Card
+    <div
       className={cn(
-        "relative overflow-hidden transition-all duration-300",
-        participant.isSpeaking ? "border-primary ring-2 ring-primary" : "border-border",
-        participant.isMuted ? "bg-muted/50" : "bg-card"
+        "relative rounded-2xl p-4 text-center",
+        participant.isAdmin ? "bg-[#ff9800] text-black" : "bg-[#1e1e1e]",
+        participant.isSpeaking ? "ring-2 ring-primary" : ""
       )}
     >
-      <CardContent className="flex flex-col items-center justify-center p-4">
-        <div className="relative">
-          <Avatar className={cn(
-              "h-20 w-20 border-2",
-              participant.isSpeaking ? "border-primary" : "border-transparent"
-            )}>
-            {participant.avatar && <AvatarImage src={participant.avatar.imageUrl} alt={participant.name} />}
-            <AvatarFallback>{participant.name.charAt(0)}</AvatarFallback>
-          </Avatar>
-           <div className="absolute -bottom-1 -right-1 bg-secondary rounded-full p-1 border-2 border-card">
-            {participant.isMuted ? (
-              <MicOff className="h-4 w-4 text-destructive" />
-            ) : (
-              <Mic className="h-4 w-4 text-foreground" />
-            )}
-          </div>
-        </div>
+        <Avatar className={cn(
+            "h-20 w-20 mx-auto border-2",
+            participant.isSpeaking ? "border-primary" : "border-transparent"
+          )}>
+          {participant.avatar && <AvatarImage src={participant.avatar.imageUrl} alt={participant.name} />}
+          <AvatarFallback>{participant.name.charAt(0)}</AvatarFallback>
+        </Avatar>
         <p className="mt-3 font-semibold text-center truncate w-full">{participant.name}</p>
-      </CardContent>
-    </Card>
+    </div>
   );
 }

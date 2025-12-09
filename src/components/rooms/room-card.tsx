@@ -1,12 +1,8 @@
 import Link from "next/link";
-import Image from "next/image";
 import { Users } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -22,34 +18,16 @@ type RoomCardProps = {
 
 export default function RoomCard({ room }: RoomCardProps) {
   return (
-    <Card className="flex flex-col overflow-hidden transition-transform duration-300 ease-in-out hover:-translate-y-1 hover:shadow-lg">
-      <CardHeader>
-        {room.image && (
-          <div className="relative aspect-video w-full rounded-t-lg overflow-hidden mb-4">
-            <Image
-              src={room.image.imageUrl}
-              alt={room.image.description}
-              fill
-              className="object-cover"
-              data-ai-hint={room.image.imageHint}
-            />
-          </div>
-        )}
-        <CardTitle>{room.name}</CardTitle>
-        <CardDescription>{room.description}</CardDescription>
-      </CardHeader>
-      <CardContent className="flex-grow">
-        <div className="flex items-center text-sm text-muted-foreground">
-          <Users className="h-4 w-4 mr-1" />
-          {/* TODO: This should be a real count */}
-          <span>{room.participants} participants</span>
-        </div>
-      </CardContent>
-      <CardFooter>
-        <Button asChild className="w-full">
-          <Link href={`/rooms/${room.id}`}>Join Room</Link>
-        </Button>
-      </CardFooter>
-    </Card>
+    <Link href={`/rooms/${room.id}`} className="block">
+      <Card className="bg-[#1c1c1c] p-4 rounded-xl transition-transform duration-300 ease-in-out hover:-translate-y-1 hover:shadow-lg text-white">
+        <CardHeader className="p-0">
+          <CardTitle className="text-lg font-bold">{room.name}</CardTitle>
+          <CardDescription className="flex items-center text-sm text-gray-400">
+             <Users className="h-4 w-4 mr-1" />
+            {room.participants} active users
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    </Link>
   );
 }
