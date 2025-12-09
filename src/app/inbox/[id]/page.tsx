@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -9,8 +8,6 @@ import {
   useDoc,
   useFirestore,
   useUser,
-  addDocumentNonBlocking,
-  updateDocumentNonBlocking
 } from '@/firebase';
 import type { PrivateChat, PrivateMessage, UserProfile } from '@/lib/types';
 import { useMemoFirebase } from '@/firebase/provider';
@@ -26,6 +23,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 export default function PrivateChatPage({ params: { id } }: { params: { id: string } }) {
   const firestore = useFirestore();
