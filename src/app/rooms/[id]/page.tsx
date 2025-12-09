@@ -220,15 +220,71 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
   return (
     <>
     <div className="flex flex-col h-screen bg-background text-card-foreground">
-      <header className="container mx-auto px-4 py-3">
+       <header className="container mx-auto px-4 py-3">
         <div className="flex justify-between items-center text-white">
           <Button variant="ghost" size="icon" asChild className="text-white hover:bg-white/20 hover:text-white">
             <Link href="/rooms">
               <ArrowLeft />
             </Link>
           </Button>
-          <h1 className="text-xl font-bold truncate">{room?.name || "Chat Room"}</h1>
-           <DropdownMenu>
+          <div className="flex flex-col items-center">
+            <h1 className="text-xl font-bold truncate">{room?.name || "Chat Room"}</h1>
+              <Sheet>
+                <SheetTrigger asChild>
+                  <button className="text-xs text-gray-400 hover:text-white">
+                    Online: {allParticipants.length}
+                  </button>
+                </SheetTrigger>
+                <SheetContent side="left">
+                  <SheetHeader>
+                    <SheetTitle>Online Users</SheetTitle>
+                    <SheetDescription>
+                      Manage active and blocked users in this room.
+                    </SheetDescription>
+                  </SheetHeader>
+                  <Tabs defaultValue="active" className="mt-4">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="active">Active ({allParticipants.length})</TabsTrigger>
+                      <TabsTrigger value="blocked">Blocked ({blockedUsers.length})</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="active">
+                      <ScrollArea className="h-[70vh]">
+                        <div className="space-y-3 mt-4">
+                          {allParticipants.map(p => (
+                            <div key={p.id} className="flex items-center gap-3">
+                              <Avatar className="h-10 w-10">
+                                <AvatarImage src={p.profileImageUrl} />
+                                <AvatarFallback>{p.username?.charAt(0)}</AvatarFallback>
+                              </Avatar>
+                              <p className="font-medium">{p.username}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    </TabsContent>
+                    <TabsContent value="blocked">
+                      <ScrollArea className="h-[70vh]">
+                        <div className="space-y-3 mt-4">
+                          {blockedUsers.length > 0 ? blockedUsers.map(u => (
+                            <div key={u.id} className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <Avatar className="h-10 w-10">
+                                  <AvatarImage src={u.profileImageUrl} />
+                                  <AvatarFallback>{u.username.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <p className="font-medium">{u.username}</p>
+                              </div>
+                              <Button variant="outline" onClick={() => handleUnblockUser(u.id)}>Unblock</Button>
+                            </div>
+                          )) : <p className="text-sm text-muted-foreground text-center mt-8">No users have been blocked.</p>}
+                        </div>
+                      </ScrollArea>
+                    </TabsContent>
+                  </Tabs>
+                </SheetContent>
+              </Sheet>
+          </div>
+          <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 hover:text-white">
                 <MoreVertical />
@@ -257,69 +313,10 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
         </div>
       </header>
 
+
       <main className="flex-grow flex flex-col container mx-auto px-4 py-4 gap-4 overflow-hidden">
         <div className="flex gap-3 justify-center items-start">
-             {/* Online Users Button/Sheet */}
-             <Sheet>
-                <SheetTrigger asChild>
-                    <div className="flex flex-col items-center gap-1 cursor-pointer">
-                         <div className="h-16 w-16 rounded-full border-2 border-dashed border-gray-400 bg-black/10 flex flex-col items-center justify-center p-0">
-                            <Users className="text-gray-400 h-6 w-6" />
-                            <span className="text-sm font-bold text-gray-400">{allParticipants.length}</span>
-                        </div>
-                        <p className="text-xs text-black font-medium">Online</p>
-                    </div>
-                </SheetTrigger>
-                <SheetContent side="left">
-                    <SheetHeader>
-                        <SheetTitle>Online Users</SheetTitle>
-                        <SheetDescription>
-                           Manage active and blocked users in this room.
-                        </SheetDescription>
-                    </SheetHeader>
-                    <Tabs defaultValue="active" className="mt-4">
-                        <TabsList className="grid w-full grid-cols-2">
-                            <TabsTrigger value="active">Active ({allParticipants.length})</TabsTrigger>
-                            <TabsTrigger value="blocked">Blocked ({blockedUsers.length})</TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="active">
-                            <ScrollArea className="h-[70vh]">
-                                <div className="space-y-3 mt-4">
-                                {allParticipants.map(p => (
-                                    <div key={p.id} className="flex items-center gap-3">
-                                        <Avatar className="h-10 w-10">
-                                            <AvatarImage src={p.profileImageUrl} />
-                                            <AvatarFallback>{p.username?.charAt(0)}</AvatarFallback>
-                                        </Avatar>
-                                        <p className="font-medium">{p.username}</p>
-                                    </div>
-                                ))}
-                                </div>
-                            </ScrollArea>
-                        </TabsContent>
-                        <TabsContent value="blocked">
-                             <ScrollArea className="h-[70vh]">
-                                <div className="space-y-3 mt-4">
-                                {blockedUsers.length > 0 ? blockedUsers.map(u => (
-                                    <div key={u.id} className="flex items-center justify-between">
-                                         <div className="flex items-center gap-3">
-                                            <Avatar className="h-10 w-10">
-                                                <AvatarImage src={u.profileImageUrl} />
-                                                <AvatarFallback>{u.username.charAt(0)}</AvatarFallback>
-                                            </Avatar>
-                                            <p className="font-medium">{u.username}</p>
-                                        </div>
-                                        <Button variant="outline" onClick={() => handleUnblockUser(u.id)}>Unblock</Button>
-                                    </div>
-                                )) : <p className="text-sm text-muted-foreground text-center mt-8">No users have been blocked.</p>}
-                                </div>
-                            </ScrollArea>
-                        </TabsContent>
-                    </Tabs>
-                </SheetContent>
-            </Sheet>
-
-            <div className="grid grid-cols-4 gap-3 flex-1">
+            <div className="grid grid-cols-5 gap-3 flex-1">
               {/* Admin Seat */}
               <div className="flex flex-col items-center gap-1">
                 <DropdownMenu>
@@ -362,7 +359,7 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
               ))}
 
               {/* Empty Seats */}
-              {[...Array(Math.max(0, 4 - (participants.length -1)))].map((_, index) => (
+              {[...Array(Math.max(0, 5 - participants.length))].map((_, index) => (
                 <div key={`empty-${index}`} className="flex flex-col items-center gap-1">
                      <Button variant="ghost" className="h-16 w-16 rounded-full border-2 border-dashed border-gray-400 bg-black/10 flex items-center justify-center p-0" onClick={handleRequestToJoin}>
                         <UserPlus className="text-gray-400 h-6 w-6" />
@@ -493,7 +490,5 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
     </>
   );
 }
-
-    
 
     
