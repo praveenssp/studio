@@ -72,7 +72,8 @@ const mockUsers = [
   { id: 'user-5', username: 'Kenji', profileImageUrl: 'https://picsum.photos/seed/e/100' },
 ];
 
-export default function ChatRoomPage({ params: { id } }: { params: { id: string } }) {
+export default function ChatRoomPage({ params }: { params: { id: string } }) {
+  const { id } = params;
   const router = useRouter();
   const { toast } = useToast();
   const firestore = useFirestore();
@@ -307,7 +308,7 @@ export default function ChatRoomPage({ params: { id } }: { params: { id: string 
             </Link>
           </Button>
           <div className="flex flex-col items-center">
-            <h1 className="text-xl font-bold truncate">{room?.name || "Chat Room"}</h1>
+            <h1 className="text-2xl font-bold truncate">{room?.name}</h1>
               <Sheet>
                 <SheetTrigger asChild>
                   <button className="text-xs text-gray-400 hover:text-white">
