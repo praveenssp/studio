@@ -93,7 +93,7 @@ export default function PrivateChatPage({ params }: { params: { id: string } }) 
 
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-screen bg-[#0f0f0f]">
       <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur-sm">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center py-3">
@@ -132,7 +132,7 @@ export default function PrivateChatPage({ params }: { params: { id: string } }) 
                   className={`max-w-xs lg:max-w-md p-3 rounded-2xl ${
                     msg.senderId === user?.uid
                       ? 'bg-primary text-primary-foreground rounded-br-none'
-                      : 'bg-card text-card-foreground rounded-bl-none'
+                      : 'bg-[#1e1e1e] text-white rounded-bl-none'
                   }`}
                 >
                   {msg.text}
@@ -143,7 +143,7 @@ export default function PrivateChatPage({ params }: { params: { id: string } }) 
         </div>
       </main>
 
-      <footer className="sticky bottom-0 bg-background border-t">
+      <footer className="sticky bottom-0 bg-[#111] border-t-0">
         <div className="container mx-auto p-3">
           <form
             className="flex items-center gap-2"
@@ -153,9 +153,9 @@ export default function PrivateChatPage({ params }: { params: { id: string } }) 
               name="message"
               placeholder="Type a message..."
               autoComplete="off"
-              className="flex-1 bg-input border-none focus-visible:ring-0 focus-visible:ring-offset-0"
+              className="flex-1 bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0 text-white"
             />
-            <Button type="submit">
+            <Button type="submit" className="main-btn rounded-full">
               Send
             </Button>
           </form>
