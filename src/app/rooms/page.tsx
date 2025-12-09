@@ -2,7 +2,7 @@
 
 import { useCollection, useFirestore } from '@/firebase';
 import RoomCard from '@/components/rooms/room-card';
-import { collection, query } from 'firebase/firestore';
+import { collection, query, orderBy } from 'firebase/firestore';
 import { useMemoFirebase } from '@/firebase/provider';
 import type { Room } from '@/lib/types';
 import { PlaceHolderImages } from "@/lib/placeholder-images";
@@ -12,7 +12,7 @@ export default function RoomsPage() {
 
   const roomsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'rooms'));
+    return query(collection(firestore, 'rooms'), orderBy('createdAt', 'desc'));
   }, [firestore]);
 
   const { data: rooms, isLoading } = useCollection<Room>(roomsQuery);

@@ -3,10 +3,7 @@
 
 import Link from 'next/link';
 import { useMemo } from 'react';
-import { ArrowLeft, Send } from 'lucide-react';
-import ParticipantCard from '@/components/chat/participant-card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { ArrowLeft, Send, Crown, Trash2, CheckCheck } from 'lucide-react';
 import {
   useCollection,
   useDoc,
@@ -14,7 +11,7 @@ import {
   useUser,
   addDocumentNonBlocking,
 } from '@/firebase';
-import type { Room, ChatMessage } from '@/lib/types';
+import type { Room, ChatMessage, UserProfile } from '@/lib/types';
 import { useMemoFirebase } from '@/firebase/provider';
 import {
   collection,
@@ -26,51 +23,44 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
-const participants = [
+
+const initialParticipants = [
   {
+    id: '1',
     name: 'Admin',
     avatar: PlaceHolderImages.find(img => img.id === 'avatar1'),
-    isMuted: false,
-    isSpeaking: true,
     isAdmin: true,
   },
   {
-    name: 'User 1',
+    id: '2',
+    name: 'Arun',
     avatar: PlaceHolderImages.find(img => img.id === 'avatar2'),
-    isMuted: false,
-    isSpeaking: false,
     isAdmin: false,
   },
   {
-    name: 'User 2',
+    id: '3',
+    name: 'Kavi',
     avatar: PlaceHolderImages.find(img => img.id === 'avatar3'),
-    isMuted: true,
-    isSpeaking: false,
     isAdmin: false,
   },
   {
-    name: 'User 3',
+    id: '4',
+    name: 'Raja',
     avatar: PlaceHolderImages.find(img => img.id === 'avatar4'),
-    isMuted: false,
-    isSpeaking: false,
     isAdmin: false,
   },
   {
-    name: 'User 4',
+    id: '5',
+    name: 'Selvi',
     avatar: PlaceHolderImages.find(img => img.id === 'avatar5'),
-    isMuted: false,
-    isSpeaking: false,
-    isAdmin: false,
-  },
-    {
-    name: 'User 5',
-    avatar: PlaceHolderImages.find(img => img.id === 'avatar6'),
-    isMuted: false,
-    isSpeaking: false,
     isAdmin: false,
   },
 ];
+
 
 export default function ChatRoomPage({ params }: { params: { id: string } }) {
   const firestore = useFirestore();
@@ -94,6 +84,10 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
   );
   const { data: messages, isLoading: areMessagesLoading } =
     useCollection<ChatMessage>(messagesQuery);
+    
+  const { data: roomCreatorProfile } = useDoc<UserProfile>(
+      useMemoFirebase(() => (firestore && room?.creatorId ? doc(firestore, 'users', room.creatorId) : null) ,[firestore, room])
+  );
 
   const handleSendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -124,72 +118,110 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
 
   if (isRoomLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center h-screen bg-background text-foreground">
         <p>Loading room...</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background">
-      <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur-sm">
-        <div className="container mx-auto px-4">
-            <div className="flex justify-between items-center py-3">
-            <Button variant="ghost" size="icon" asChild>
-                <Link href="/rooms">
-                <ArrowLeft />
-                </Link>
-            </Button>
-            <h1 className="text-xl font-bold truncate">{room?.name || 'Room'}</h1>
-            <Button variant="ghost" size="icon">⋮</Button>
-            </div>
+    <div className="flex flex-col h-screen bg-background text-card-foreground">
+      <header className="container mx-auto px-4 py-3">
+        <div className="flex justify-between items-center text-white">
+          <Button variant="ghost" size="icon" asChild className="text-white hover:bg-white/20 hover:text-white">
+            <Link href="/rooms">
+              <ArrowLeft />
+            </Link>
+          </Button>
+          <h1 className="text-xl font-bold truncate">MSG Chatroom</h1>
+          <Button variant="outline" className="rounded-full bg-white text-blue-600 border-none hover:bg-gray-200">5 Online</Button>
         </div>
       </header>
 
-      <main className="flex-grow flex flex-col container mx-auto px-4 py-4 gap-4">
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
-          {participants.map((p, index) => (
-            <ParticipantCard key={index} participant={p} />
+      <main className="flex-grow flex flex-col container mx-auto px-4 py-4 gap-4 overflow-hidden">
+        <div className="flex flex-col items-center text-black">
+          <div className="relative">
+            <Avatar className="h-24 w-24 border-4 border-white ring-4 ring-yellow-400">
+                <AvatarImage src={roomCreatorProfile?.profileImageUrl} />
+                <AvatarFallback className="text-3xl">
+                    {roomCreatorProfile?.username?.charAt(0)}
+                </AvatarFallback>
+            </Avatar>
+            <Crown className="absolute -top-3 -right-3 h-8 w-8 text-yellow-400 transform rotate-[30deg]" fill="currentColor" />
+             <div className="absolute bottom-1 right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+          </div>
+        </div>
+
+        <div className="flex justify-center items-center gap-3">
+          {initialParticipants.map(p => (
+            <div key={p.id} className="flex flex-col items-center gap-1">
+                 <Avatar className="h-12 w-12 border-2 border-white">
+                    <AvatarImage src={p.avatar?.imageUrl} alt={p.name} />
+                    <AvatarFallback>{p.name.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <p className="text-xs text-black font-medium">{p.name}</p>
+            </div>
           ))}
         </div>
 
-        <ScrollArea className="flex-grow rounded-lg bg-card p-4">
-            {areMessagesLoading ? (
-              <p className="text-muted-foreground">Loading messages...</p>
-            ) : (
-             messages && messages.length > 0 ? (
-                messages.map(msg => (
-                    <div key={msg.id} className="text-sm mb-2">
-                    <span className="font-bold">{msg.senderName}:</span> <span className="text-white/80">{msg.text}</span>
+        <div className="flex-grow bg-card rounded-t-3xl p-4 flex flex-col">
+            <ScrollArea className="flex-grow">
+                <div className="space-y-4">
+                {areMessagesLoading ? (
+                <p className="text-muted-foreground">Loading messages...</p>
+                ) : (
+                messages && messages.length > 0 ? (
+                    messages.map(msg => (
+                        <div key={msg.id} className={`flex items-end gap-2 ${msg.senderId === user?.uid ? 'flex-row-reverse' : ''}`}>
+                             <Avatar className="h-8 w-8">
+                                <AvatarImage src={undefined} />
+                                <AvatarFallback>{msg.senderName.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <div className={`p-3 rounded-2xl max-w-[70%] ${msg.senderId === user?.uid ? 'bg-yellow-200 rounded-br-none' : 'bg-white rounded-bl-none'}`}>
+                                <p className="font-bold text-sm">{msg.senderName}</p>
+                                <p className="text-sm">{msg.text}</p>
+                                <div className="flex justify-end items-center mt-1">
+                                    <CheckCheck className="h-4 w-4 text-blue-500" />
+                                </div>
+                            </div>
+                            {msg.senderId === user?.uid && (
+                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-muted-foreground hover:bg-destructive/20 hover:text-destructive">
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            )}
+                        </div>
+                    ))
+                ) : (
+                    <div className="flex items-center justify-center h-full">
+                        <p className="text-muted-foreground">No messages yet. Be the first to speak!</p>
                     </div>
-                ))
-              ) : (
-                <div className="flex items-center justify-center h-full">
-                    <p className="text-muted-foreground">No messages yet. Be the first to speak!</p>
+                )
+                )}
+                <div className="flex items-center gap-2">
+                    <p className="text-sm text-muted-foreground italic">Admin is typing...</p>
                 </div>
-              )
-            )}
-        </ScrollArea>
-      </main>
-      
-      <footer className="sticky bottom-0 bg-card border-t">
-        <div className="container mx-auto p-3">
-          <form
-            className="flex items-center gap-2"
-            onSubmit={handleSendMessage}
-          >
-            <Input
-              name="message"
-              placeholder="Type a message..."
-              autoComplete="off"
-              className="flex-1 bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0"
-            />
-            <Button type="submit" size="icon" className="rounded-full">
-              <Send />
-            </Button>
-          </form>
+                </div>
+            </ScrollArea>
+        
+            <div className="mt-auto pt-4">
+            <form
+                className="flex items-center gap-3"
+                onSubmit={handleSendMessage}
+            >
+                <Input
+                name="message"
+                placeholder="Type message..."
+                autoComplete="off"
+                className="flex-1 bg-white rounded-full border-gray-300 focus-visible:ring-primary"
+                />
+                <Button type="submit" className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground px-6">
+                Send
+                </Button>
+            </form>
+            </div>
         </div>
-      </footer>
+
+      </main>
     </div>
   );
 }

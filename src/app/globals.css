@@ -8,25 +8,25 @@ body {
 
 @layer base {
   :root {
-    --background: 240 10% 3.9%; /* dark */
-    --foreground: 0 0% 98%;
-    --card: 240 4.8% 12%;
-    --card-foreground: 0 0% 98%;
+    --background: 88 79% 52%; /* lime green */
+    --foreground: 0 0% 100%; /* white */
+    --card: 90 100% 95%; /* very light green for chat area */
+    --card-foreground: 0 0% 0%; /* black text for cards */
     --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
-    --primary: 13 97% 59%; /* #ff5733 */
-    --primary-foreground: 0 0% 100%;
+    --primary: 45 100% 50%; /* yellow */
+    --primary-foreground: 0 0% 0%; /* black */
     --secondary: 240 3.7% 15.9%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 0 0% 63.9%;
+    --muted: 90 100% 95%;
+    --muted-foreground: 0 0% 40%;
     --accent: 240 3.7% 15.9%;
     --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
     --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 13 97% 59%;
+    --input: 0 0% 100%; /* white input */
+    --ring: 45 100% 50%;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
