@@ -1,9 +1,9 @@
+
 'use client';
 
 import Link from 'next/link';
 import { useMemo } from 'react';
-import { ArrowLeft, Users, Send } from 'lucide-react';
-import ChatControls from '@/components/chat/chat-controls';
+import { ArrowLeft, Send } from 'lucide-react';
 import ParticipantCard from '@/components/chat/participant-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +25,7 @@ import {
 } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const participants = [
   {
@@ -58,6 +59,13 @@ const participants = [
   {
     name: 'User 4',
     avatar: PlaceHolderImages.find(img => img.id === 'avatar5'),
+    isMuted: false,
+    isSpeaking: false,
+    isAdmin: false,
+  },
+    {
+    name: 'User 5',
+    avatar: PlaceHolderImages.find(img => img.id === 'avatar6'),
     isMuted: false,
     isSpeaking: false,
     isAdmin: false,
@@ -123,55 +131,61 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)]">
-        <div className='container mx-auto px-4'>
-            <div className="flex justify-between items-center py-4">
-            <Button variant="ghost" asChild>
+    <div className="flex flex-col h-screen bg-background">
+      <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur-sm">
+        <div className="container mx-auto px-4">
+            <div className="flex justify-between items-center py-3">
+            <Button variant="ghost" size="icon" asChild>
                 <Link href="/rooms">
                 <ArrowLeft />
                 </Link>
             </Button>
-            <h1 className="text-xl font-bold">{room?.name || 'Room'}</h1>
-            <Button variant="ghost">⋮</Button>
+            <h1 className="text-xl font-bold truncate">{room?.name || 'Room'}</h1>
+            <Button variant="ghost" size="icon">⋮</Button>
             </div>
         </div>
+      </header>
 
-        <div className="container mx-auto px-4 flex-grow flex flex-col gap-4">
-        
-        <div className="grid grid-cols-3 gap-2.5 p-2.5">
+      <main className="flex-grow flex flex-col container mx-auto px-4 py-4 gap-4">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
           {participants.map((p, index) => (
             <ParticipantCard key={index} participant={p} />
           ))}
         </div>
 
-        <div className="flex-grow flex flex-col justify-end bg-transparent rounded-lg p-2.5">
-          <div className="space-y-2 overflow-y-auto h-full">
+        <ScrollArea className="flex-grow rounded-lg bg-card p-4">
             {areMessagesLoading ? (
-              <p>Loading messages...</p>
+              <p className="text-muted-foreground">Loading messages...</p>
             ) : (
-              messages?.map(msg => (
-                <div key={msg.id}>
-                  <b>{msg.senderName}:</b> {msg.text} 🔊
+             messages && messages.length > 0 ? (
+                messages.map(msg => (
+                    <div key={msg.id} className="text-sm mb-2">
+                    <span className="font-bold">{msg.senderName}:</span> <span className="text-white/80">{msg.text}</span>
+                    </div>
+                ))
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                    <p className="text-muted-foreground">No messages yet. Be the first to speak!</p>
                 </div>
-              ))
+              )
             )}
-          </div>
-        </div>
-      </div>
-      <footer className="bg-[#111] sticky bottom-0">
-        <div className="container mx-auto p-3 flex items-center gap-2">
+        </ScrollArea>
+      </main>
+      
+      <footer className="sticky bottom-0 bg-card border-t">
+        <div className="container mx-auto p-3">
           <form
-            className="flex-grow flex items-center gap-2"
+            className="flex items-center gap-2"
             onSubmit={handleSendMessage}
           >
             <Input
               name="message"
               placeholder="Type a message..."
               autoComplete="off"
-               className="flex-1 p-3 border-none bg-transparent"
+              className="flex-1 bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0"
             />
-            <Button type="submit">
-              Send
+            <Button type="submit" size="icon" className="rounded-full">
+              <Send />
             </Button>
           </form>
         </div>
