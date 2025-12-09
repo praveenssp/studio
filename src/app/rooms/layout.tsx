@@ -3,7 +3,6 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/firebase';
-import Header from "@/components/shared/header";
 
 export default function RoomsLayout({
   children,
@@ -32,7 +31,6 @@ export default function RoomsLayout({
   // If there's a user, render the layout with its children
   return user ? (
     <div className="flex flex-col min-h-screen bg-background text-white">
-      <Header />
       <main className="flex-1">{children}</main>
     </div>
   ) : null; // Or a fallback component if you prefer

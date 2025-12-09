@@ -9,6 +9,7 @@ import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
+import Header from '@/components/shared/header';
 
 export default function RoomsPage() {
   const firestore = useFirestore();
@@ -24,7 +25,8 @@ export default function RoomsPage() {
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <Header />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="animate-pulse bg-card rounded-xl p-4">
               <div className="h-6 bg-muted rounded w-3/4 mb-2"></div>
@@ -47,23 +49,22 @@ export default function RoomsPage() {
 
 
   return (
-    <div className="container mx-auto px-4 py-8">
-       <Button variant="ghost" onClick={() => router.back()} className="mb-4">
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back
-      </Button>
-      {rooms && rooms.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {rooms.map((room, index) => (
-            <RoomCard key={room.id} room={{...room, image: getImageForRoom(index), participants: 0}} />
-          ))}
-        </div>
-      ) : (
-         <div className="text-center py-16">
-            <h2 className="text-2xl font-semibold mb-2">No rooms available</h2>
-            <p className="text-muted-foreground">Why not create one and get the conversation started?</p>
-        </div>
-      )}
-    </div>
+    <>
+      <Header />
+      <div className="container mx-auto px-4 py-8">
+        {rooms && rooms.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {rooms.map((room, index) => (
+              <RoomCard key={room.id} room={{...room, image: getImageForRoom(index), participants: 0}} />
+            ))}
+          </div>
+        ) : (
+           <div className="text-center py-16">
+              <h2 className="text-2xl font-semibold mb-2">No rooms available</h2>
+              <p className="text-muted-foreground">Why not create one and get the conversation started?</p>
+          </div>
+        )}
+      </div>
+    </>
   );
 }
