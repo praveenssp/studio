@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { ArrowLeft, Send, Crown, Trash2, CheckCheck, MoreVertical, RefreshCw, Eraser, UserPlus, User, MessageSquare, XCircle, Ban, Check, X } from 'lucide-react';
+import { ArrowLeft, Send, Crown, Trash2, CheckCheck, MoreVertical, RefreshCw, Eraser, UserPlus, User, MessageSquare, XCircle, Ban, Check, X, Users } from 'lucide-react';
 import {
   useCollection,
   useDoc,
@@ -48,6 +48,15 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from "@/components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -72,7 +81,8 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
   // State for participants and join requests
   const [participants, setParticipants] = useState(mockUsers.slice(0, 1)); // Start with one participant
   const [joinRequests, setJoinRequests] = useState(mockUsers.slice(1, 3)); // Two users requesting to join
-  const availableUsers = mockUsers.filter(u => ![...participants.map(p => p.id), ...joinRequests.map(r => r.id)].includes(u.id));
+  const [blockedUsers, setBlockedUsers] = useState<typeof mockUsers>([]);
+  const availableUsers = mockUsers.filter(u => ![...participants.map(p => p.id), ...joinRequests.map(r => r.id), ...blockedUsers.map(b => b.id)].includes(u.id));
 
 
   const roomRef = useMemoFirebase(
@@ -98,6 +108,8 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
   );
 
   const isCreator = user?.uid === room?.creatorId;
+  const allParticipants = useMemo(() => [roomCreatorProfile, ...participants.slice(1)].filter(Boolean) as (UserProfile | {id: string; username: string; profileImageUrl: string})[], [roomCreatorProfile, participants]);
+
 
   const handleSendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -184,6 +196,18 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
     setParticipants(participants.filter(p => p.id !== participantId));
     toast({ title: `Removed user from seat.`})
   }
+  
+  const handleBlockUser = (userToBlock: typeof mockUsers[0]) => {
+    handleRemoveParticipant(userToBlock.id);
+    setBlockedUsers([...blockedUsers, userToBlock]);
+    toast({ title: `User ${userToBlock.username} blocked.`});
+  }
+  
+  const handleUnblockUser = (userIdToUnblock: string) => {
+    setBlockedUsers(blockedUsers.filter(u => u.id !== userIdToUnblock));
+     toast({ title: `User unblocked.`});
+  }
+
 
   if (isRoomLoading) {
     return (
@@ -234,57 +258,119 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
       </header>
 
       <main className="flex-grow flex flex-col container mx-auto px-4 py-4 gap-4 overflow-hidden">
-        <div className="grid grid-cols-5 gap-3">
-          {/* Admin Seat */}
-          <div className="flex flex-col items-center gap-1">
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <button className="relative">
-                        <Avatar className="h-16 w-16 border-2 border-yellow-400">
-                            <AvatarImage src={roomCreatorProfile?.profileImageUrl} />
-                            <AvatarFallback className="text-lg">{roomCreatorProfile?.username?.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <Crown className="absolute -top-2 -right-2 h-6 w-6 text-yellow-400 transform rotate-[30deg]" fill="currentColor" />
-                    </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                    <DropdownMenuItem>
-                        <User className="mr-2 h-4 w-4" /> View Profile
-                    </DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
-            <p className="text-xs text-black font-medium">{roomCreatorProfile?.username || 'Admin'}</p>
-          </div>
-          
-          {/* Participant Seats */}
-          {participants.slice(1).map(p => (
-             <div key={p.id} className="flex flex-col items-center gap-1">
-                 <DropdownMenu>
+        <div className="flex gap-3 justify-center items-start">
+             {/* Online Users Button/Sheet */}
+             <Sheet>
+                <SheetTrigger asChild>
+                    <div className="flex flex-col items-center gap-1 cursor-pointer">
+                         <div className="h-16 w-16 rounded-full border-2 border-dashed border-gray-400 bg-black/10 flex flex-col items-center justify-center p-0">
+                            <Users className="text-gray-400 h-6 w-6" />
+                            <span className="text-sm font-bold text-gray-400">{allParticipants.length}</span>
+                        </div>
+                        <p className="text-xs text-black font-medium">Online</p>
+                    </div>
+                </SheetTrigger>
+                <SheetContent side="left">
+                    <SheetHeader>
+                        <SheetTitle>Online Users</SheetTitle>
+                        <SheetDescription>
+                           Manage active and blocked users in this room.
+                        </SheetDescription>
+                    </SheetHeader>
+                    <Tabs defaultValue="active" className="mt-4">
+                        <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="active">Active ({allParticipants.length})</TabsTrigger>
+                            <TabsTrigger value="blocked">Blocked ({blockedUsers.length})</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="active">
+                            <ScrollArea className="h-[70vh]">
+                                <div className="space-y-3 mt-4">
+                                {allParticipants.map(p => (
+                                    <div key={p.id} className="flex items-center gap-3">
+                                        <Avatar className="h-10 w-10">
+                                            <AvatarImage src={p.profileImageUrl} />
+                                            <AvatarFallback>{p.username?.charAt(0)}</AvatarFallback>
+                                        </Avatar>
+                                        <p className="font-medium">{p.username}</p>
+                                    </div>
+                                ))}
+                                </div>
+                            </ScrollArea>
+                        </TabsContent>
+                        <TabsContent value="blocked">
+                             <ScrollArea className="h-[70vh]">
+                                <div className="space-y-3 mt-4">
+                                {blockedUsers.length > 0 ? blockedUsers.map(u => (
+                                    <div key={u.id} className="flex items-center justify-between">
+                                         <div className="flex items-center gap-3">
+                                            <Avatar className="h-10 w-10">
+                                                <AvatarImage src={u.profileImageUrl} />
+                                                <AvatarFallback>{u.username.charAt(0)}</AvatarFallback>
+                                            </Avatar>
+                                            <p className="font-medium">{u.username}</p>
+                                        </div>
+                                        <Button variant="outline" onClick={() => handleUnblockUser(u.id)}>Unblock</Button>
+                                    </div>
+                                )) : <p className="text-sm text-muted-foreground text-center mt-8">No users have been blocked.</p>}
+                                </div>
+                            </ScrollArea>
+                        </TabsContent>
+                    </Tabs>
+                </SheetContent>
+            </Sheet>
+
+            <div className="grid grid-cols-4 gap-3 flex-1">
+              {/* Admin Seat */}
+              <div className="flex flex-col items-center gap-1">
+                <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <button><Avatar className="h-16 w-16"><AvatarImage src={p.profileImageUrl} /><AvatarFallback>{p.username.charAt(0)}</AvatarFallback></Avatar></button>
+                        <button className="relative">
+                            <Avatar className="h-16 w-16 border-2 border-yellow-400">
+                                <AvatarImage src={roomCreatorProfile?.profileImageUrl} />
+                                <AvatarFallback className="text-lg">{roomCreatorProfile?.username?.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <Crown className="absolute -top-2 -right-2 h-6 w-6 text-yellow-400 transform rotate-[30deg]" fill="currentColor" />
+                        </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
-                        <DropdownMenuItem><User className="mr-2 h-4 w-4" /> View Profile</DropdownMenuItem>
-                        <DropdownMenuItem><UserPlus className="mr-2 h-4 w-4" /> Follow</DropdownMenuItem>
-                        <DropdownMenuItem><MessageSquare className="mr-2 h-4 w-4" /> Message</DropdownMenuItem>
-                        {isCreator && <DropdownMenuSeparator />}
-                        {isCreator && <DropdownMenuItem className="text-destructive" onClick={() => handleRemoveParticipant(p.id)}><XCircle className="mr-2 h-4 w-4" /> Kick from seat</DropdownMenuItem>}
-                        {isCreator && <DropdownMenuItem className="text-destructive" onClick={() => toast({title: "User blocked"})}><Ban className="mr-2 h-4 w-4" /> Block User</DropdownMenuItem>}
+                        <DropdownMenuItem>
+                            <User className="mr-2 h-4 w-4" /> View Profile
+                        </DropdownMenuItem>
                     </DropdownMenuContent>
-                 </DropdownMenu>
-                <p className="text-xs text-black font-medium">{p.username}</p>
-            </div>
-          ))}
+                </DropdownMenu>
+                <p className="text-xs text-black font-medium">{roomCreatorProfile?.username || 'Admin'}</p>
+              </div>
+              
+              {/* Participant Seats */}
+              {participants.slice(1).map(p => (
+                 <div key={p.id} className="flex flex-col items-center gap-1">
+                     <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <button><Avatar className="h-16 w-16"><AvatarImage src={p.profileImageUrl} /><AvatarFallback>{p.username.charAt(0)}</AvatarFallback></Avatar></button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                            <DropdownMenuItem><User className="mr-2 h-4 w-4" /> View Profile</DropdownMenuItem>
+                            <DropdownMenuItem><UserPlus className="mr-2 h-4 w-4" /> Follow</DropdownMenuItem>
+                            <DropdownMenuItem><MessageSquare className="mr-2 h-4 w-4" /> Message</DropdownMenuItem>
+                            {isCreator && <DropdownMenuSeparator />}
+                            {isCreator && <DropdownMenuItem className="text-destructive" onClick={() => handleRemoveParticipant(p.id)}><XCircle className="mr-2 h-4 w-4" /> Kick from seat</DropdownMenuItem>}
+                            {isCreator && <DropdownMenuItem className="text-destructive" onClick={() => handleBlockUser(p)}><Ban className="mr-2 h-4 w-4" /> Block User</DropdownMenuItem>}
+                        </DropdownMenuContent>
+                     </DropdownMenu>
+                    <p className="text-xs text-black font-medium">{p.username}</p>
+                </div>
+              ))}
 
-          {/* Empty Seats */}
-          {[...Array(Math.max(0, 4 - (participants.length -1)))].map((_, index) => (
-            <div key={`empty-${index}`} className="flex flex-col items-center gap-1">
-                 <Button variant="ghost" className="h-16 w-16 rounded-full border-2 border-dashed border-gray-400 bg-black/10 flex items-center justify-center p-0" onClick={handleRequestToJoin}>
-                    <UserPlus className="text-gray-400 h-6 w-6" />
-                 </Button>
-                <p className="text-xs text-black font-medium">Empty</p>
+              {/* Empty Seats */}
+              {[...Array(Math.max(0, 4 - (participants.length -1)))].map((_, index) => (
+                <div key={`empty-${index}`} className="flex flex-col items-center gap-1">
+                     <Button variant="ghost" className="h-16 w-16 rounded-full border-2 border-dashed border-gray-400 bg-black/10 flex items-center justify-center p-0" onClick={handleRequestToJoin}>
+                        <UserPlus className="text-gray-400 h-6 w-6" />
+                     </Button>
+                    <p className="text-xs text-black font-medium">Empty</p>
+                </div>
+              ))}
             </div>
-          ))}
         </div>
 
         {/* Join Requests for Admin */}
@@ -407,5 +493,7 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
     </>
   );
 }
+
+    
 
     
