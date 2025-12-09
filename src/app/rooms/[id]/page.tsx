@@ -11,8 +11,9 @@ import {
   useUser,
   addDocumentNonBlocking,
   deleteDocumentNonBlocking,
+  setDocumentNonBlocking,
 } from '@/firebase';
-import type { Room, ChatMessage, UserProfile } from '@/lib/types';
+import type { Room, ChatMessage, UserProfile, PrivateChat } from '@/lib/types';
 import { useMemoFirebase } from '@/firebase/provider';
 import {
   collection,
@@ -23,6 +24,8 @@ import {
   writeBatch,
   getDocs,
   deleteDoc,
+  where,
+  limit,
 } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import { useRouter } from 'next/navigation';
@@ -106,9 +109,61 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
   const { data: roomCreatorProfile } = useDoc<UserProfile>(
       useMemoFirebase(() => (firestore && room?.creatorId ? doc(firestore, 'users', room.creatorId) : null) ,[firestore, room])
   );
+  
+  const { data: currentUserProfile } = useDoc<UserProfile>(
+      useMemoFirebase(() => (firestore && user?.uid ? doc(firestore, 'users', user.uid) : null), [firestore, user])
+  );
 
   const isCreator = user?.uid === room?.creatorId;
   const allParticipants = useMemo(() => [roomCreatorProfile, ...participants.slice(1)].filter(Boolean) as (UserProfile | {id: string; username: string; profileImageUrl: string})[], [roomCreatorProfile, participants]);
+
+   const handleStartPrivateChat = async (targetUser: {id: string, username: string, profileImageUrl?: string}) => {
+    if (!firestore || !user || !currentUserProfile || !targetUser || user.uid === targetUser.id) return;
+
+    try {
+        const chatsRef = collection(firestore, 'privateChats');
+        // Firestore doesn't support array-contains-all, so we query twice. A more complex query might be needed for groups.
+        const q1 = query(chatsRef, where('participantIds', '==', [user.uid, targetUser.id]));
+        const q2 = query(chatsRef, where('participantIds', '==', [targetUser.id, user.uid]));
+
+        const [querySnapshot1, querySnapshot2] = await Promise.all([getDocs(q1), getDocs(q2)]);
+        
+        const existingChats = [...querySnapshot1.docs, ...querySnapshot2.docs];
+
+        if (existingChats.length > 0) {
+            // Chat already exists, navigate to it
+            router.push(`/inbox/${existingChats[0].id}`);
+        } else {
+            // Create a new chat
+            const newChatId = uuidv4();
+            const newChatData: PrivateChat = {
+                id: newChatId,
+                participantIds: [user.uid, targetUser.id],
+                participants: {
+                    [user.uid]: {
+                        username: currentUserProfile.username,
+                        profileImageUrl: currentUserProfile.profileImageUrl || ''
+                    },
+                    [targetUser.id]: {
+                        username: targetUser.username,
+                        profileImageUrl: targetUser.profileImageUrl || ''
+                    }
+                },
+                createdAt: serverTimestamp(),
+            };
+            const chatDocRef = doc(firestore, 'privateChats', newChatId);
+            setDocumentNonBlocking(chatDocRef, newChatData, {});
+            router.push(`/inbox/${newChatId}`);
+        }
+    } catch (error) {
+        console.error("Error starting private chat:", error);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Could not start a private chat."
+        });
+    }
+  };
 
 
   const handleSendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -348,7 +403,7 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
                         <DropdownMenuContent>
                             <DropdownMenuItem><User className="mr-2 h-4 w-4" /> View Profile</DropdownMenuItem>
                             <DropdownMenuItem><UserPlus className="mr-2 h-4 w-4" /> Follow</DropdownMenuItem>
-                            <DropdownMenuItem><MessageSquare className="mr-2 h-4 w-4" /> Message</DropdownMenuItem>
+                             <DropdownMenuItem onClick={() => handleStartPrivateChat(p)}><MessageSquare className="mr-2 h-4 w-4" /> Message</DropdownMenuItem>
                             {isCreator && <DropdownMenuSeparator />}
                             {isCreator && <DropdownMenuItem className="text-destructive" onClick={() => handleRemoveParticipant(p.id)}><XCircle className="mr-2 h-4 w-4" /> Kick from seat</DropdownMenuItem>}
                             {isCreator && <DropdownMenuItem className="text-destructive" onClick={() => handleBlockUser(p)}><Ban className="mr-2 h-4 w-4" /> Block User</DropdownMenuItem>}
@@ -490,5 +545,3 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
     </>
   );
 }
-
-    
