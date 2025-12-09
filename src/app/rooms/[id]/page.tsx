@@ -50,6 +50,15 @@ import {
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 
+// Mock data for participants
+const mockParticipants = [
+  { id: 'user-1', username: 'Alex', profileImageUrl: 'https://picsum.photos/seed/a/100' },
+  { id: 'user-2', username: 'Maria', profileImageUrl: 'https://picsum.photos/seed/b/100' },
+  { id: 'user-3', username: 'David', profileImageUrl: 'https://picsum.photos/seed/c/100' },
+  { id: 'user-4', username: 'Sophia', profileImageUrl: 'https://picsum.photos/seed/d/100' },
+  { id: 'user-5', username: 'Kenji', profileImageUrl: 'https://picsum.photos/seed/e/100' },
+];
+
 export default function ChatRoomPage({ params }: { params: { id: string } }) {
   const { id } = params;
   const router = useRouter();
@@ -58,6 +67,7 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
   const { user } = useUser();
   const [isClearAlertOpen, setIsClearAlertOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [participants, setParticipants] = useState(mockParticipants.slice(0, 4));
 
 
   const roomRef = useMemoFirebase(
@@ -234,7 +244,16 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
         </div>
 
         <div className="grid grid-cols-4 gap-3">
-          {[...Array(4)].map((_, index) => (
+          {participants.map(p => (
+            <div key={p.id} className="flex flex-col items-center gap-1">
+              <Avatar className="h-16 w-16">
+                <AvatarImage src={p.profileImageUrl} />
+                <AvatarFallback>{p.username.charAt(0)}</AvatarFallback>
+              </Avatar>
+              <p className="text-xs text-black font-medium">{p.username}</p>
+            </div>
+          ))}
+          {[...Array(4 - participants.length)].map((_, index) => (
             <div key={index} className="flex flex-col items-center gap-1">
                  <Avatar className="h-16 w-16 border-2 border-dashed border-gray-400 bg-black/10 flex items-center justify-center">
                     <AvatarFallback className="bg-transparent">
@@ -344,5 +363,7 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
     </>
   );
 }
+
+    
 
     
