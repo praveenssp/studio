@@ -27,8 +27,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
-export default function PrivateChatPage({ params }: { params: { id: string } }) {
-  const { id } = params;
+export default function PrivateChatPage({ params: { id } }: { params: { id: string } }) {
   const firestore = useFirestore();
   const { user } = useUser();
 
