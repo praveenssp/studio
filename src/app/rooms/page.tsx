@@ -22,12 +22,15 @@ export default function RoomsPage() {
     return (
       <div className="flex flex-col min-h-screen bg-background text-white">
         <Header />
-        <main className="flex-1 container mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+        <main className="flex-1 container mx-auto max-w-4xl px-4 py-8">
+          <div className="space-y-4 mt-4">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="animate-pulse bg-card rounded-xl p-4 space-y-2">
-                <div className="h-6 bg-muted rounded w-3/4"></div>
-                <div className="h-4 bg-muted rounded w-1/2"></div>
+              <div key={i} className="animate-pulse bg-card rounded-xl p-4 flex items-center gap-4">
+                <div className="h-16 w-16 bg-muted rounded-lg"></div>
+                <div className="space-y-2 flex-1">
+                    <div className="h-6 bg-muted rounded w-3/4"></div>
+                    <div className="h-4 bg-muted rounded w-1/2"></div>
+                </div>
               </div>
             ))}
           </div>
@@ -50,9 +53,9 @@ export default function RoomsPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background text-white">
       <Header />
-      <main className="flex-1 container mx-auto px-4 py-8">
+      <main className="flex-1 container mx-auto max-w-4xl px-4 py-8">
         {rooms && rooms.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="space-y-4">
             {rooms.map((room, index) => (
               <RoomCard key={room.id} room={{...room, imageUrl: getImageForRoom(index), participants: 0}} />
             ))}
