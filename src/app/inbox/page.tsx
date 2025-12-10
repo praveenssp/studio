@@ -49,34 +49,34 @@ export default function InboxPage() {
             </div>
 
             {isLoading && (
-                 <div className="space-y-3">
+                 <div className="space-y-2">
                     {[...Array(3)].map((_, i) => (
-                        <div key={i} className="flex items-center gap-4 bg-card p-3 rounded-xl animate-pulse">
-                            <div className="h-12 w-12 rounded-full bg-muted"></div>
+                        <div key={i} className="flex items-center gap-3 bg-card p-2 rounded-lg animate-pulse">
+                            <div className="h-10 w-10 rounded-full bg-muted"></div>
                             <div className="flex-1 space-y-2">
-                                <div className="h-4 bg-muted rounded w-3/4"></div>
-                                <div className="h-3 bg-muted rounded w-1/2"></div>
+                                <div className="h-3 bg-muted rounded w-3/4"></div>
+                                <div className="h-2 bg-muted rounded w-1/2"></div>
                             </div>
                         </div>
                     ))}
                 </div>
             )}
             {!isLoading && chats && chats.length > 0 ? (
-                <div className="space-y-3">
+                <div className="space-y-2">
                     {chats.map(chat => {
                         const otherParticipant = getOtherParticipant(chat);
                         if (!otherParticipant) return null;
 
                         return (
                             <Link href={`/inbox/${chat.id}`} key={chat.id} className="block">
-                                <div className="flex items-center gap-3 bg-card p-3 rounded-xl hover:bg-card/80 transition-colors">
-                                    <Avatar className="h-12 w-12">
+                                <div className="flex items-center gap-3 bg-card p-2 rounded-lg hover:bg-card/80 transition-colors">
+                                    <Avatar className="h-10 w-10">
                                         <AvatarImage src={otherParticipant.profileImageUrl} />
                                         <AvatarFallback>{otherParticipant.username.charAt(0)}</AvatarFallback>
                                     </Avatar>
                                     <div className="flex-1 overflow-hidden">
-                                        <h4 className="font-semibold text-base truncate">{otherParticipant.username}</h4>
-                                        <p className="text-sm text-gray-400 truncate">
+                                        <h4 className="font-semibold text-sm truncate">{otherParticipant.username}</h4>
+                                        <p className="text-xs text-gray-400 truncate">
                                             {chat.lastMessage?.senderId === user?.uid && 'You: '}
                                             {chat.lastMessage?.text || 'No messages yet'}
                                         </p>
